@@ -42,6 +42,13 @@ public class GameManager : MonoBehaviour
     public float Habitability => Mathf.Clamp01(HarvestCount / (float)HarvestsForFullHabitability);
     public PlantData SelectedPlant => Plants[selected];
 
+    // 물뿌리개: 레벨(1~4), 남은 물(횟수), 미션으로 받은 강화권
+    public int CanLevel { get; private set; } = 1;
+    public int CanWater { get; private set; }
+    public int CanTokens { get; private set; }
+    public int CanCapacity => Progression.CanCapacity[CanLevel - 1];
+    public bool CanMaxed => CanLevel >= Progression.CanMaxLevel;
+
     readonly Dictionary<string, int> seeds = new Dictionary<string, int>();
     readonly Dictionary<string, int> materials = new Dictionary<string, int>();
     int[] fertilizer = new int[Progression.FertilizerGrades];
@@ -128,8 +135,29 @@ public class GameManager : MonoBehaviour
             string name = variant ? p.variantName : p.displayName;
             return (isNew ? $"새로 발견! {name} 도감 등록. " : $"{name} 수확. ") + "송신기로 지구에 보내세요";
         }
-        if (spot.AddWater(0.3f)) return "물을 너무 많이 줘서 꽃이 썩었어요…";
-        return $"물을 줬어요 (수분 {spot.Water:P0})";
+        if (CanWater <= 0) return "물뿌리개가 비었어요! 기지 남서쪽 호수에서 E로 채우세요";
+        CanWater--;
+        if (spot.AddWater(Progression.WaterPerPour)) return $"물을 너무 많이 줘서 꽃이 썩었어요… (물뿌리개 {CanWater}/{CanCapacity})";
+        return $"물을 줬어요 (수분 {spot.Water:P0} · 물뿌리개 {CanWater}/{CanCapacity})" + (CanWater == 0 ? "\n물이 떨어졌어요. 호수에서 채우세요" : "");
+    }
+
+    // 호수에서 E: 물뿌리개를 가득 채운다
+    public string RefillCan()
+    {
+        if (CanWater >= CanCapacity) return $"물뿌리개가 이미 가득 찼어요 ({CanWater}/{CanCapacity})";
+        CanWater = CanCapacity;
+        return $"물뿌리개를 가득 채웠어요! ({CanWater}/{CanCapacity})";
+    }
+
+    // 업그레이드 창에서 물뿌리개 강화: 강화권으로 사용 횟수를 늘리고, 늘어난 만큼 바로 채워 준다
+    public string UpgradeCan()
+    {
+        if (CanMaxed) return $"물뿌리개가 이미 최고 단계예요 (Lv{CanLevel} · {CanCapacity}회)";
+        if (CanTokens < Progression.CanUpgradeCost) return "강화권이 없어요. 미션 생존선을 넘으면 1장씩 받아요";
+        CanTokens -= Progression.CanUpgradeCost;
+        CanLevel++;
+        CanWater = CanCapacity;
+        return $"물뿌리개 Lv{CanLevel} 강화 완료! 이제 {CanCapacity}번 쓸 수 있어요";
     }
 
     // 채집 자원에서 E: 맞는 도구가 있어야 캔다
@@ -162,7 +190,8 @@ public class GameManager : MonoBehaviour
             return $"미션 {mission} 실패… {points}점 / 생존선 {Progression.SurviveLine(mission)}점. 연료통을 못 받았어요";
 
         Fuel = Mathf.Min(Progression.MaxFuel, Fuel + Progression.MissionFuel);
-        string msg = $"미션 {mission} 성공! {points}점 → 연료통 +{Progression.MissionFuel:0}";
+        CanTokens++;
+        string msg = $"미션 {mission} 성공! {points}점 → 연료통 +{Progression.MissionFuel:0} · 물뿌리개 강화권 +1";
 
         if (points >= Progression.UpgradeLine(mission))
         {
@@ -288,6 +317,9 @@ public class GameManager : MonoBehaviour
             lastMissionDay = LastMissionDay,
             rewardsGiven = rewardsGiven,
             fertilizer = fertilizer.ToArray(),
+            canLevel = CanLevel,
+            canWater = CanWater,
+            canTokens = CanTokens,
             fuel = Fuel,
             day = Day,
             minute = Minute,
@@ -316,6 +348,7 @@ public class GameManager : MonoBehaviour
         if (save == null)
         {
             Fuel = Progression.StartFuel;
+            CanWater = CanCapacity;
             AddSeed(Plants[0], 3);
             if (Plants.Count > 1) AddSeed(Plants[1], 2);
             return;
@@ -335,6 +368,10 @@ public class GameManager : MonoBehaviour
         LastMissionDay = save.lastMissionDay;
         rewardsGiven = save.rewardsGiven;
         if (save.fertilizer != null && save.fertilizer.Length == Progression.FertilizerGrades) fertilizer = save.fertilizer;
+        // canLevel 0 = 물뿌리개가 생기기 전 옛 저장 → Lv1 가득 찬 걸로 시작
+        CanLevel = Mathf.Clamp(save.canLevel, 1, Progression.CanMaxLevel);
+        CanWater = save.canLevel == 0 ? CanCapacity : Mathf.Clamp(save.canWater, 0, CanCapacity);
+        CanTokens = Mathf.Max(0, save.canTokens);
         // 연료 0 저장은 없다(끝난 판은 지움). 0이면 연료가 생기기 전 옛 저장이다.
         Fuel = save.fuel > 0 ? save.fuel : Progression.StartFuel;
         Day = Mathf.Max(1, save.day);
@@ -366,6 +403,7 @@ public class GameManager : MonoBehaviour
         public List<string> upgrades = new List<string>();
         public List<HarvestedFlower> flowerBag = new List<HarvestedFlower>();
         public int harvestCount, flowersSent, day, missionBonus, lastMissionDay, rewardsGiven;
+        public int canLevel, canWater, canTokens;
         public int[] fertilizer;
         public float fuel, minute;
         public List<SpotSave> spots = new List<SpotSave>();

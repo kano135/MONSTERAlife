@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// AI 로봇 조작: WASD 이동, Shift 달리기, Space 점프, E 심기·물주기·수확·채집·지구로 보내기,
+// AI 로봇 조작: WASD 이동, Shift 달리기, Space 점프, E 심기·물주기·수확·채집·지구로 보내기·호수에서 물 채우기,
 // Q(기지 충전기 옆) 충전하고 하루 끝내기, Tab 씨앗 바꾸기
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
@@ -16,6 +16,7 @@ public class PlayerController : MonoBehaviour
     public ResourceNode NearestNode { get; private set; }
     public bool NearStation { get; private set; }
     public bool NearPad { get; private set; }
+    public bool NearLake { get; private set; }
     public GreenhouseDevice NearestDevice { get; private set; }
     public bool InGreenhouse { get; private set; }
     public string CurrentMessage => Time.time < messageUntil ? message : null;
@@ -83,11 +84,13 @@ public class PlayerController : MonoBehaviour
         }
         NearStation = station && (station.transform.position - transform.position).sqrMagnitude < station.range * station.range;
         NearPad = pad && (pad.transform.position - transform.position).sqrMagnitude < pad.range * pad.range;
+        NearLake = Lake.Instance && Lake.Instance.InReach(transform.position);
         if (kb.eKey.wasPressedThisFrame)
         {
             if (NearStation) Show(gm.SendToEarth(), 4f);
-            else if (NearestSpot) Show(gm.Interact(NearestSpot));
+            else if (NearestSpot) Show(gm.Interact(NearestSpot), 3f);
             else if (NearestDevice) Show(NearestDevice.Use(), 3f);
+            else if (NearLake) Show(gm.RefillCan(), 3f);
             else if (NearestNode) Show(gm.Gather(NearestNode), 3.5f);
         }
         if (kb.fKey.wasPressedThisFrame && NearestSpot) Show(gm.Fertilize(NearestSpot), 3f);

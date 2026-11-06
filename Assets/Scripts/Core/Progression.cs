@@ -46,6 +46,13 @@ public static class Progression
         return UnityEngine.Mathf.Clamp(1 + UnityEngine.Mathf.FloorToInt(t * 4), 1, FertilizerGrades);
     }
 
+    // 물뿌리개: 밭에서 E 한 번 = 1회 사용(수분 +WaterPerPour). 다 쓰면 기지 남서쪽 호수에서 E로 가득 채운다.
+    // 미션 생존선을 넘을 때마다 강화권 1장 → U 업그레이드 창에서 강화권 1장으로 한 단계씩 강화(숫자 키 7).
+    public const float WaterPerPour = 0.3f;
+    public static readonly int[] CanCapacity = { 3, 5, 8, 12 }; // Lv1~Lv4 사용 횟수
+    public static int CanMaxLevel => CanCapacity.Length;
+    public const int CanUpgradeCost = 1; // 강화권 장수
+
     // 가습기·난방기를 만들기 전 비닐하우스 습도·온도(행성 바깥 날씨)
     public const float AmbientHumidity = 0.3f;
     public const float AmbientTemperature = 0.3f;

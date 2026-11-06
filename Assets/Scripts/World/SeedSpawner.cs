@@ -34,9 +34,15 @@ public class SeedSpawner : MonoBehaviour
     void Spawn()
     {
         var plant = PickWeighted();
-        float angle = Random.value * Mathf.PI * 2;
-        float dist = Random.Range(minRadius, maxRadius);
-        var pos = new Vector3(Mathf.Cos(angle) * dist, 0.6f, Mathf.Sin(angle) * dist);
+        // 호수 위에는 안 생기게 몇 번 다시 뽑는다
+        Vector3 pos;
+        int tries = 0;
+        do
+        {
+            float angle = Random.value * Mathf.PI * 2;
+            float dist = Random.Range(minRadius, maxRadius);
+            pos = new Vector3(Mathf.Cos(angle) * dist, 0.6f, Mathf.Sin(angle) * dist);
+        } while (Lake.Overlaps(pos, 1f) && ++tries < 10);
 
         GameObject seed;
         var art = ArtLibrary.World("Props/seed");

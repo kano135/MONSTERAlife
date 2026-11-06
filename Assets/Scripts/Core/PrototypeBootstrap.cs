@@ -26,6 +26,7 @@ public static class PrototypeBootstrap
         var player = BuildRobot(home);
         var spots = BuildGreenhouse();
         BuildSendStation();
+        Lake.Build(LakeCenter, LakeRadius);
         var nodes = BuildResources();
 
         var cam = Camera.main ? Camera.main.gameObject : new GameObject("Main Camera", typeof(Camera)) { tag = "MainCamera" };
@@ -45,6 +46,9 @@ public static class PrototypeBootstrap
     // 충전기 그림은 Props/charger.png 로 넣으면 도형 대신 나온다.
     static readonly Vector3 BaseCenter = new Vector3(0, 0, 1);
     const float FenceRadius = 16f;
+    // 호수: 남쪽 출입구로 나가서 왼쪽(남서쪽) 울타리 바로 밖
+    static readonly Vector3 LakeCenter = new Vector3(-11f, 0, -21f);
+    const float LakeRadius = 4f;
 
     static Vector3 BuildBase()
     {
@@ -180,7 +184,15 @@ public static class PrototypeBootstrap
         {
             var angle = (float)rng.NextDouble() * Mathf.PI * 2;
             var dist = 20f + (float)rng.NextDouble() * 18f; // 기지 울타리 밖
-            return new Vector3(Mathf.Cos(angle) * dist, 0, Mathf.Sin(angle) * dist);
+            var pos = new Vector3(Mathf.Cos(angle) * dist, 0, Mathf.Sin(angle) * dist);
+            // 호수에 겹치면 호수 밖으로 밀어낸다(뽑는 횟수는 그대로라 자리·저장 순서가 안 바뀐다)
+            if (Lake.Overlaps(pos, 2.5f))
+            {
+                var away = pos - LakeCenter;
+                away.y = 0;
+                pos = LakeCenter + away.normalized * (LakeRadius + 3f);
+            }
+            return pos;
         }
         GameObject Add(string name, string material, Vector3 pos)
         {

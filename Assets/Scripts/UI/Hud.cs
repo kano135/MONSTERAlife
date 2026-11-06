@@ -258,11 +258,45 @@ public class Hud : MonoBehaviour
             slotCount[i] = UiKit.Label(fill.transform, "", 22, UiKit.Ink, TextAnchor.LowerRight);
             slotCount[i].rectTransform.Stretch(4);
             slotCount[i].gameObject.AddComponent<Outline>().effectColor = Color.white;
+
+            // 칸 번호(숫자 키로 바로 고르기): 1~9, 10번째 칸은 0
+            if (i < 10)
+            {
+                var num = UiKit.Label(fill.transform, ((i + 1) % 10).ToString(), 20, UiKit.Ink, TextAnchor.UpperLeft);
+                num.rectTransform.Stretch(5);
+                num.gameObject.AddComponent<Outline>().effectColor = Color.white;
+            }
         }
         var namePill = UiKit.Panel(root, "SeedName", UiKit.Yellow);
         namePill.Root().Place(new Vector2(0.5f, 0), new Vector2(0, slot + 56), new Vector2(300, 46));
         selectedName = UiKit.Label(namePill.transform, "", 22, UiKit.Ink, TextAnchor.MiddleCenter);
         selectedName.rectTransform.Stretch();
+
+        // 물뿌리개: 씨앗 칸 왼쪽 위. 그림은 Icons/wateringcan, 없으면 하늘색 동그라미.
+        float barWidth = n * (slot + gap) + 24;
+        canBox = UiKit.Panel(root, "WateringCan", UiKit.Sky);
+        canBox.Root().Place(new Vector2(0.5f, 0), new Vector2(-barWidth / 2 + 150, slot + 52), new Vector2(300, 56));
+        var canSprite = ArtLibrary.Ui("Icons/wateringcan");
+        var canIcon = UiKit.Icon(canBox.transform, canSprite ? canSprite : UiKit.Rounded, new Vector2(0, 0.5f), new Vector2(6, 0), 46);
+        if (!canSprite) { canIcon.enabled = true; canIcon.color = UiKit.DarkGreen; canIcon.rectTransform.sizeDelta = Vector2.one * 30; }
+        canText = UiKit.Label(canBox.transform, "", 22, UiKit.Ink);
+        canText.rectTransform.Place(new Vector2(0, 0.5f), new Vector2(58, 0), new Vector2(236, 50));
+    }
+
+    Image canBox;
+    Text canText;
+
+    // ●●○ 처럼 남은 횟수. 칸이 많으면(8회 이상) 숫자만.
+    string CanDots() => gm.CanCapacity <= 6
+        ? new string('●', gm.CanWater) + new string('○', gm.CanCapacity - gm.CanWater)
+        : "";
+
+    void UpdateCan()
+    {
+        canBox.color = gm.CanWater > 0 ? UiKit.Sky : UiKit.Pink;
+        canText.text = gm.CanWater > 0
+            ? $"물뿌리개 Lv{gm.CanLevel} {CanDots()} {gm.CanWater}/{gm.CanCapacity}"
+            : $"물 0/{gm.CanCapacity} · 호수로!";
     }
 
     void BuildPrompt()
@@ -318,8 +352,8 @@ public class Hud : MonoBehaviour
     void BuildHints()
     {
         var card = UiKit.Panel(root, "Hints", new Color(1, 1, 1, 0.85f), UiKit.Muted, 3);
-        card.Root().Place(new Vector2(0, 0), new Vector2(24, 24), new Vector2(420, 140));
-        UiKit.Label(card.transform, "WASD 이동 · Shift 달리기 · E 행동\nF 비료 · Q 충전기에서 쉬기 · 1~0·Tab 씨앗\nB 도감 · U 업그레이드\nV 1인칭/3인칭 · Esc 설정", 18, UiKit.Ink, TextAnchor.MiddleCenter)
+        card.Root().Place(new Vector2(0, 0), new Vector2(24, 24), new Vector2(420, 160));
+        UiKit.Label(card.transform, "WASD 이동 · Shift 달리기 · E 행동\nF 비료 · Q 충전기에서 쉬기 · 1~0·Tab 씨앗\n호수에서 E 물뿌리개 채우기\nB 도감 · U 업그레이드\nV 1인칭/3인칭 · Esc 설정", 18, UiKit.Ink, TextAnchor.MiddleCenter)
             .rectTransform.Stretch(6);
     }
 
@@ -364,7 +398,7 @@ public class Hud : MonoBehaviour
     void BuildUpgrade()
     {
         var panel = UiKit.Panel(root, "Upgrade", UiKit.Cream, UiKit.DarkGreen, 6);
-        upgrade = panel.Root().Place(new Vector2(0.5f, 0.5f), new Vector2(0, 30), new Vector2(1240, 700)).gameObject;
+        upgrade = panel.Root().Place(new Vector2(0.5f, 0.5f), new Vector2(0, 30), new Vector2(1440, 700)).gameObject;
         UiKit.Label(panel.transform, "업그레이드", 44, UiKit.DarkGreen, TextAnchor.MiddleCenter)
             .rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0, -20), new Vector2(600, 60));
         UiKit.Label(panel.transform, "U 닫기", 22, UiKit.Ink, TextAnchor.MiddleRight)
@@ -378,15 +412,28 @@ public class Hud : MonoBehaviour
         {
             var bp = bps[i];
             var card = UiKit.Panel(panel.transform, "Card", Color.white, UiKit.Muted, 4);
-            card.Root().Place(new Vector2(0.5f, 1), new Vector2(-500 + i * 200, -150), new Vector2(186, 500));
+            card.Root().Place(new Vector2(0.5f, 1), new Vector2(-600 + i * 200, -150), new Vector2(186, 500));
             UiKit.Icon(card.transform, ArtLibrary.Ui($"Icons/blueprint_{bp.id}") ?? ArtLibrary.Ui("Icons/book"), new Vector2(0.5f, 1), new Vector2(0, -12), 90);
             upgradeText[i] = UiKit.Label(card.transform, "", 21, UiKit.Ink, TextAnchor.UpperCenter);
             upgradeText[i].rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0, -110), new Vector2(176, 300));
             var btn = UiKit.Button(card.transform, $"만들기 [{i + 1}]", UiKit.Yellow, () => player.Show(gm.Craft(bp), 3.5f));
             ((RectTransform)btn.transform).Place(new Vector2(0.5f, 0), new Vector2(0, 16), new Vector2(170, 56));
         }
+
+        // 마지막 칸: 물뿌리개 강화(설계도 대신 미션 강화권을 쓴다)
+        var canCard = UiKit.Panel(panel.transform, "Card_WateringCan", new Color32(232, 246, 255, 255), UiKit.Sky, 4);
+        canCard.Root().Place(new Vector2(0.5f, 1), new Vector2(-600 + bps.Length * 200, -150), new Vector2(186, 500));
+        UiKit.Icon(canCard.transform, ArtLibrary.Ui("Icons/wateringcan") ?? ArtLibrary.Ui("Icons/water"), new Vector2(0.5f, 1), new Vector2(0, -12), 90);
+        upgradeCanText = UiKit.Label(canCard.transform, "", 21, UiKit.Ink, TextAnchor.UpperCenter);
+        upgradeCanText.rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0, -110), new Vector2(176, 300));
+        var canBtn = UiKit.Button(canCard.transform, $"강화 [{CanUpgradeKey + 1}]", UiKit.Sky, () => player.Show(gm.UpgradeCan(), 3.5f));
+        ((RectTransform)canBtn.transform).Place(new Vector2(0.5f, 0), new Vector2(0, 16), new Vector2(170, 56));
         upgrade.SetActive(false);
     }
+
+    Text upgradeCanText;
+    // 업그레이드 창에서 물뿌리개 강화 숫자 키 = 설계도 다음 칸(7)
+    static int CanUpgradeKey => Progression.Blueprints.Length;
 
     void BuildIntro()
     {
@@ -480,6 +527,7 @@ public class Hud : MonoBehaviour
         UpdateClock();
         UpdateMission();
         UpdateHotbar();
+        UpdateCan();
         UpdatePrompt();
         UpdateToast();
         if (book.activeSelf) UpdateBook();
@@ -510,7 +558,11 @@ public class Hud : MonoBehaviour
         for (int i = 0; i < keys.Length; i++)
         {
             if (!keys[i].wasPressedThisFrame) continue;
-            if (upgrade.activeSelf) { if (i < Progression.Blueprints.Length) player.Show(gm.Craft(Progression.Blueprints[i]), 3.5f); }
+            if (upgrade.activeSelf)
+            {
+                if (i < Progression.Blueprints.Length) player.Show(gm.Craft(Progression.Blueprints[i]), 3.5f);
+                else if (i == CanUpgradeKey) player.Show(gm.UpgradeCan(), 3.5f);
+            }
             else if (i < gm.Plants.Count) gm.Select(i);
         }
 
@@ -636,6 +688,12 @@ public class Hud : MonoBehaviour
                 : $"세기를 바꾸면 {d.Stat} 수치를 맞춰요(약·중·강).\n꽃마다 좋아하는 {d.Stat} 수치가 달라요.";
             promptAction.text = d.Broken ? "고치기" : "세기 바꾸기";
         }
+        else if (player.NearLake)
+        {
+            promptTitle.text = "호수";
+            promptBody.text = $"물뿌리개 Lv{gm.CanLevel} · {gm.CanWater}/{gm.CanCapacity}회\n여기서 물뿌리개를 가득 채울 수 있어요.\n(미션 생존선을 넘어 받은 강화권으로 U 창에서 강화)";
+            promptAction.text = gm.CanWater >= gm.CanCapacity ? "이미 가득 찼어요" : "물 채우기";
+        }
         else if (player.NearestNode)
         {
             var node = player.NearestNode;
@@ -686,7 +744,10 @@ public class Hud : MonoBehaviour
             envRange[i].offsetMin = envRange[i].offsetMax = Vector2.zero;
             envText[i].text = $"{values[i]:P0}";
         }
-        promptAction.text = spot.IsBloomed ? "수확하기" : spot.Water >= 1f ? "물 주기 (! 더 주면 썩어요)" : "물 주기";
+        promptAction.text = spot.IsBloomed ? "수확하기"
+            : gm.CanWater <= 0 ? "물뿌리개 비었음 → 호수에서 채우기"
+            : spot.Water >= 1f ? $"물 주기 {gm.CanWater}/{gm.CanCapacity} (! 썩어요)"
+            : $"물 주기 (물뿌리개 {gm.CanWater}/{gm.CanCapacity})";
     }
 
     void UpdateToast()
@@ -727,6 +788,11 @@ public class Hud : MonoBehaviour
                 $"{(gm.MaterialCount(c.materialId) >= c.count ? "●" : "○")} {Progression.GetMaterial(c.materialId).name} {gm.MaterialCount(c.materialId)}/{c.count}"));
             upgradeText[i].text = $"{bp.name}\n\n{bp.effect}\n\n{(gm.HasUpgrade(bp.id) ? "● 완성!" : cost)}";
         }
+
+        string next = gm.CanMaxed ? "● 최고 단계!" :
+            $"다음 Lv{gm.CanLevel + 1}: {Progression.CanCapacity[gm.CanLevel]}회\n\n" +
+            $"{(gm.CanTokens >= Progression.CanUpgradeCost ? "●" : "○")} 강화권 {gm.CanTokens}/{Progression.CanUpgradeCost}";
+        upgradeCanText.text = $"물뿌리개 Lv{gm.CanLevel}\n\n지금 {gm.CanCapacity}회 사용\n(미션 생존선 통과 = 강화권 1장)\n\n{next}";
     }
 
     void ShowEnding()
