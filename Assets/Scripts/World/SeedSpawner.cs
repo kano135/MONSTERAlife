@@ -6,10 +6,10 @@ using UnityEngine;
 // 흔한 식물(희귀도 낮음)일수록 자주 나온다.
 public class SeedSpawner : MonoBehaviour
 {
-    public int maxSeeds = 12;
+    public int maxSeeds = 24;
     public float respawnSeconds = 20f;
     public float minRadius = 19f; // 기지 울타리 밖
-    public float maxRadius = 38f;
+    public float maxRadius = GroundView.Size / 2f - 4f;
 
     List<PlantData> plants;
     readonly List<SeedPickup> alive = new List<SeedPickup>();
@@ -64,7 +64,7 @@ public class SeedSpawner : MonoBehaviour
         alive.Add(pickup);
     }
 
-    // 위에서 아래로 쏴서 씨앗을 땅(또는 큰 돌 언덕) 위에 올린다. 폐허 지붕처럼 높은 곳이면 false → 다시 뽑기.
+    // 위에서 아래로 쏴서 씨앗을 땅 위에 올린다. 나무 줄기·바위 꼭대기처럼 높은 곳이면 false → 다시 뽑기.
     static bool OnGround(ref Vector3 pos)
     {
         if (!Physics.Raycast(new Vector3(pos.x, 30f, pos.z), Vector3.down, out var hit, 60f)) return true;

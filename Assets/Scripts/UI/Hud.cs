@@ -6,8 +6,9 @@ using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 // 게임 화면 UI 전체(UGUI, 코드로 만든다). 프루트버스 느낌: 크림색 둥근 판 + 진한 테두리 + 큰 아이콘.
-//   왼쪽 위 상태(연료·행성 생명력·가방·재료) · 가운데 위 날짜/시계 · 오른쪽 위 미션
-//   아래 가운데 씨앗 칸 · 오른쪽 아래 행동 안내 · 가운데 알림 · B 도감 · U 업그레이드 · 시작 안내 · 엔딩
+//   왼쪽 위 연료(막대·며칠 남음) · 비닐하우스 안에서만 습도·온도·빛 · 가운데 위 날짜/시계
+//   아래 가운데 씨앗 칸(물뿌리개를 들고 있을 때만 남은 횟수) · 오른쪽 아래 행동 안내 · 가운데 알림
+//   Esc 메뉴(미션·상태·설정) · B 도감 · U 업그레이드 · 시작 안내 · 엔딩
 public class Hud : MonoBehaviour
 {
     public PlayerController player;
@@ -46,9 +47,6 @@ public class Hud : MonoBehaviour
     RectTransform missionBar;
     RectTransform[] missionMarks;
 
-    Image[] slotFill;
-    Image[] slotIcon;
-    Text[] slotCount;
     Text selectedName;
 
     GameObject promptBox;
@@ -99,7 +97,6 @@ public class Hud : MonoBehaviour
         BuildStatus();
         BuildGreenhousePanel();
         BuildClock();
-        BuildMission();
 
         // 장치가 고장 나면 어디 있든 알려 준다
         if (Greenhouse.Instance) Greenhouse.Instance.Broke += d => player.Show($"비닐하우스 {d.Name} 고장! 가서 E로 고쳐 주세요", 5f);
@@ -121,28 +118,23 @@ public class Hud : MonoBehaviour
     {
         UiKit.Icon(root, ArtLibrary.Ui("UI/logo"), new Vector2(0, 1), new Vector2(28, -10), 250);
 
+        // 화면에는 연료만(막대 + 며칠치 남았는지). 행성 생명력·가방·재료·비료는 Esc 메뉴 '상태' 탭에.
         var card = UiKit.Panel(root, "Status", UiKit.Cream);
-        card.Root().Place(new Vector2(0, 1), new Vector2(24, -150), new Vector2(460, 270));
+        card.Root().Place(new Vector2(0, 1), new Vector2(24, -150), new Vector2(460, 84));
         (fuelText, fuelBar) = BarRow(card.transform, -22, "연료", UiKit.Orange);
-        (lifeText, lifeBar) = BarRow(card.transform, -78, "행성 생명력", UiKit.Green);
-        bagText = UiKit.Label(card.transform, "", 22, UiKit.Ink);
-        bagText.rectTransform.Place(new Vector2(0, 1), new Vector2(20, -128), new Vector2(420, 34));
-        matText = UiKit.Label(card.transform, "", 22, UiKit.Ink);
-        matText.rectTransform.Place(new Vector2(0, 1), new Vector2(20, -168), new Vector2(420, 34));
-        fertText = UiKit.Label(card.transform, "", 22, UiKit.Ink);
-        fertText.rectTransform.Place(new Vector2(0, 1), new Vector2(20, -208), new Vector2(420, 34));
 
         // 로봇 얼굴은 카드 오른쪽 위 바깥에 스티커처럼(숫자를 가리지 않게)
         face = UiKit.Icon(card.Root(), faceNeutral, new Vector2(1, 1), new Vector2(10, 100), 96);
     }
 
-    (Text, RectTransform) BarRow(Transform parent, float y, string label, Color color)
+    // labelWidth: 이름 칸 폭(이름이 길면 넓혀서 막대와 안 겹치게)
+    (Text, RectTransform) BarRow(Transform parent, float y, string label, Color color, float x = 20, float labelWidth = 110)
     {
-        UiKit.Label(parent, label, 22, UiKit.Ink).rectTransform.Place(new Vector2(0, 1), new Vector2(20, y), new Vector2(150, 40));
+        UiKit.Label(parent, label, 22, UiKit.Ink).rectTransform.Place(new Vector2(0, 1), new Vector2(x, y), new Vector2(labelWidth, 40));
         var bar = UiKit.Bar(parent, UiKit.Muted, color);
-        ((RectTransform)bar.parent).Place(new Vector2(0, 1), new Vector2(150, y - 6), new Vector2(170, 28));
+        ((RectTransform)bar.parent).Place(new Vector2(0, 1), new Vector2(x + labelWidth, y - 6), new Vector2(190, 28));
         var value = UiKit.Label(parent, "", 20, UiKit.Ink, TextAnchor.MiddleRight);
-        value.rectTransform.Place(new Vector2(0, 1), new Vector2(320, y), new Vector2(115, 40));
+        value.rectTransform.Place(new Vector2(0, 1), new Vector2(x + labelWidth + 190, y), new Vector2(120, 40));
         return (value, bar);
     }
 
@@ -151,7 +143,7 @@ public class Hud : MonoBehaviour
     {
         if (!Greenhouse.Instance) return;
         var card = UiKit.Panel(root, "GreenhouseInfo", UiKit.Cream, UiKit.DarkGreen);
-        greenhouseBox = card.Root().Place(new Vector2(0, 1), new Vector2(24, -440), new Vector2(460, 236)).gameObject;
+        greenhouseBox = card.Root().Place(new Vector2(0, 1), new Vector2(24, -256), new Vector2(460, 236)).gameObject;
         UiKit.Label(card.transform, "비닐하우스", 28, UiKit.DarkGreen).rectTransform.Place(new Vector2(0, 1), new Vector2(20, -12), new Vector2(420, 40));
         string[] icons = { "Icons/water", "Icons/temp", "Icons/sun" };
         Color[] colors = { UiKit.Sky, UiKit.Pink, UiKit.Yellow };
@@ -202,10 +194,11 @@ public class Hud : MonoBehaviour
         sendText.rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0, -86), new Vector2(380, 30));
     }
 
-    void BuildMission()
+    // 미션 카드: Esc 메뉴 '미션' 탭 안에 놓는다
+    void BuildMission(Transform parent)
     {
-        var card = UiKit.Panel(root, "Mission", UiKit.Cream, UiKit.DarkGreen);
-        card.Root().Place(new Vector2(1, 1), new Vector2(-24, -24), new Vector2(470, 290));
+        var card = UiKit.Panel(parent, "Mission", Color.white, UiKit.DarkGreen);
+        card.Root().Place(new Vector2(0.5f, 1), new Vector2(0, -10), new Vector2(470, 290));
         missionTitle = UiKit.Label(card.transform, "", 28, UiKit.DarkGreen);
         missionTitle.rectTransform.Place(new Vector2(0, 1), new Vector2(20, -14), new Vector2(430, 40));
 
@@ -228,54 +221,25 @@ public class Hud : MonoBehaviour
         missionBody.rectTransform.Place(new Vector2(0, 1), new Vector2(20, -120), new Vector2(430, 160));
     }
 
+    // 아래 칸 9개(숫자 키 1~9). 칸 번호만 고정이고, 무엇이 들어가는지는 얻은 순서(Inventory). Esc 가방에서 옮길 수 있다.
     void BuildHotbar()
     {
-        int n = gm.Plants.Count;
+        int n = Inventory.HotbarSize;
         const float slot = 84, gap = 6;
         var bar = UiKit.Panel(root, "Hotbar", UiKit.Cream);
         bar.Root().Place(new Vector2(0.5f, 0), new Vector2(0, 20), new Vector2(n * (slot + gap) + 24, slot + 28));
-        slotFill = new Image[n];
-        slotIcon = new Image[n];
-        slotCount = new Text[n];
         for (int i = 0; i < n; i++)
-        {
-            int index = i;
-            var fill = UiKit.Panel(bar.transform, "Slot", Color.white, UiKit.Muted, 4);
-            fill.Root().Place(new Vector2(0, 0.5f), new Vector2(10 + i * (slot + gap), 2), new Vector2(slot, slot));
-            var btn = fill.Root().gameObject.AddComponent<Button>();
-            btn.targetGraphic = fill;
-            btn.onClick.AddListener(() => gm.Select(index));
-            slotFill[i] = fill;
-            var icon = ArtLibrary.PlantIcon(gm.Plants[i]);
-            slotIcon[i] = UiKit.Icon(fill.transform, icon, new Vector2(0.5f, 0.5f), Vector2.zero, slot - 14);
-            if (!icon)
-            {
-                slotIcon[i].enabled = true;
-                slotIcon[i].sprite = UiKit.Rounded;
-                slotIcon[i].color = gm.Plants[i].color;
-                slotIcon[i].rectTransform.sizeDelta = Vector2.one * 40;
-            }
-            slotCount[i] = UiKit.Label(fill.transform, "", 22, UiKit.Ink, TextAnchor.LowerRight);
-            slotCount[i].rectTransform.Stretch(4);
-            slotCount[i].gameObject.AddComponent<Outline>().effectColor = Color.white;
-
-            // 칸 번호(숫자 키로 바로 고르기): 1~9, 10번째 칸은 0
-            if (i < 10)
-            {
-                var num = UiKit.Label(fill.transform, ((i + 1) % 10).ToString(), 20, UiKit.Ink, TextAnchor.UpperLeft);
-                num.rectTransform.Stretch(5);
-                num.gameObject.AddComponent<Outline>().effectColor = Color.white;
-            }
-        }
+            MakeSlot(bar.transform, i, new Vector2(10 + i * (slot + gap), 2), new Vector2(0, 0.5f), slot, true, true);
+        // 손에 든 것 이름(물뿌리개 판과 안 겹치게 살짝 오른쪽)
         var namePill = UiKit.Panel(root, "SeedName", UiKit.Yellow);
-        namePill.Root().Place(new Vector2(0.5f, 0), new Vector2(0, slot + 56), new Vector2(300, 46));
+        namePill.Root().Place(new Vector2(0.5f, 0), new Vector2(60, slot + 56), new Vector2(300, 46));
         selectedName = UiKit.Label(namePill.transform, "", 22, UiKit.Ink, TextAnchor.MiddleCenter);
         selectedName.rectTransform.Stretch();
 
         // 물뿌리개: 씨앗 칸 왼쪽 위. 그림은 Icons/wateringcan, 없으면 하늘색 동그라미.
         float barWidth = n * (slot + gap) + 24;
         canBox = UiKit.Panel(root, "WateringCan", UiKit.Sky);
-        canBox.Root().Place(new Vector2(0.5f, 0), new Vector2(-barWidth / 2 + 150, slot + 52), new Vector2(300, 56));
+        canBox.Root().Place(new Vector2(0.5f, 0), new Vector2(-barWidth / 2 + 110, slot + 52), new Vector2(300, 56));
         var canSprite = ArtLibrary.Ui("Icons/wateringcan");
         var canIcon = UiKit.Icon(canBox.transform, canSprite ? canSprite : UiKit.Rounded, new Vector2(0, 0.5f), new Vector2(6, 0), 46);
         if (!canSprite) { canIcon.enabled = true; canIcon.color = UiKit.DarkGreen; canIcon.rectTransform.sizeDelta = Vector2.one * 30; }
@@ -286,13 +250,74 @@ public class Hud : MonoBehaviour
     Image canBox;
     Text canText;
 
+    // ───────── 물건 칸(아래 칸·가방 공용) ─────────
+
+    readonly System.Collections.Generic.List<InventorySlotUI> slotViews = new System.Collections.Generic.List<InventorySlotUI>();
+
+    // grow: 손에 든 칸을 살짝 키운다(아래 칸만)
+    InventorySlotUI MakeSlot(Transform parent, int index, Vector2 pos, Vector2 anchor, float size, bool number, bool grow = false)
+    {
+        var fill = UiKit.Panel(parent, "Slot", Color.white, UiKit.Muted, 4);
+        fill.Root().Place(anchor, pos, new Vector2(size, size));
+        var view = fill.Root().gameObject.AddComponent<InventorySlotUI>();
+        view.index = index;
+        view.fill = fill;
+        view.icon = UiKit.Icon(fill.transform, null, new Vector2(0.5f, 0.5f), Vector2.zero, size - 14);
+        view.count = UiKit.Label(fill.transform, "", size > 70 ? 22 : 18, UiKit.Ink, TextAnchor.LowerRight);
+        view.count.rectTransform.Stretch(4);
+        view.count.gameObject.AddComponent<Outline>().effectColor = Color.white;
+        if (number)
+        {
+            var num = UiKit.Label(fill.transform, (index + 1).ToString(), size > 70 ? 20 : 16, UiKit.Ink, TextAnchor.UpperLeft);
+            num.rectTransform.Stretch(5);
+            num.gameObject.AddComponent<Outline>().effectColor = Color.white;
+        }
+        view.dragLayer = root;
+        view.grow = grow;
+        view.onUse = i => { var msg = gm.Inv.Use(i); if (msg != null) player.Show(msg, 2.5f); };
+        view.onMove = (from, to) => gm.Inv.Swap(from, to);
+        slotViews.Add(view);
+        return view;
+    }
+
+    void UpdateSlots()
+    {
+        var inv = gm.Inv;
+        foreach (var v in slotViews)
+        {
+            string key = inv.Slots[v.index];
+            bool held = v.index == inv.Selected;
+            v.fill.color = held ? UiKit.Yellow : Color.white;
+            if (v.grow) v.fill.Root().localScale = Vector3.one * (held ? 1.1f : 1f);
+            if (key == "")
+            {
+                v.icon.enabled = false;
+                v.count.text = "";
+                continue;
+            }
+            var sprite = inv.Icon(key);
+            v.icon.enabled = true;
+            v.icon.sprite = sprite ? sprite : UiKit.Rounded;
+            v.icon.color = sprite ? Color.white : inv.Tint(key);
+            float full = ((RectTransform)v.transform).sizeDelta.x - 14;
+            v.icon.rectTransform.sizeDelta = Vector2.one * (sprite ? full : full * 0.55f);
+            v.count.text = $"×{inv.Count(key)}";
+        }
+        string heldKey = inv.HeldKey;
+        selectedName.text = heldKey == "" ? "빈 손 (물뿌리개)" : $"{inv.Name(heldKey)} ×{inv.Count(heldKey)}";
+    }
+
     // ●●○ 처럼 남은 횟수. 칸이 많으면(8회 이상) 숫자만.
     string CanDots() => gm.CanCapacity <= 6
         ? new string('●', gm.CanWater) + new string('○', gm.CanCapacity - gm.CanWater)
         : "";
 
+    // 물뿌리개 남은 횟수는 손에 물뿌리개를 들고 있을 때만
     void UpdateCan()
     {
+        var box = canBox.Root().gameObject;
+        if (box.activeSelf != HandItemView.HoldingCan) box.SetActive(HandItemView.HoldingCan);
+        if (!HandItemView.HoldingCan) return;
         canBox.color = gm.CanWater > 0 ? UiKit.Sky : UiKit.Pink;
         canText.text = gm.CanWater > 0
             ? $"물뿌리개 Lv{gm.CanLevel} {CanDots()} {gm.CanWater}/{gm.CanCapacity}"
@@ -353,7 +378,7 @@ public class Hud : MonoBehaviour
     {
         var card = UiKit.Panel(root, "Hints", new Color(1, 1, 1, 0.85f), UiKit.Muted, 3);
         card.Root().Place(new Vector2(0, 0), new Vector2(24, 24), new Vector2(420, 160));
-        UiKit.Label(card.transform, "WASD 이동 · Shift 달리기 · E 행동\nF 비료 · Q 충전기에서 쉬기 · 1~0·Tab 씨앗\n호수에서 E 물뿌리개 채우기\nB 도감 · U 업그레이드\nV 1인칭/3인칭 · Esc 설정", 18, UiKit.Ink, TextAnchor.MiddleCenter)
+        UiKit.Label(card.transform, "WASD 이동 · Shift 달리기 · E 행동\nF 비료 · Q 충전기에서 쉬기 · 1~9·Tab 손에 들기\n호수에서 E 물뿌리개 채우기\nB 도감 · U 업그레이드\nV 1인칭/3인칭 · Esc 메뉴(가방·미션·상태·설정)", 18, UiKit.Ink, TextAnchor.MiddleCenter)
             .rectTransform.Stretch(6);
     }
 
@@ -449,32 +474,98 @@ public class Hud : MonoBehaviour
             .rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0, -250), new Vector2(600, 40));
     }
 
-    // Esc 설정: 시점(1인칭/3인칭)과 마우스 감도. 고른 값은 다음에 켜도 남는다(CameraRig).
+    // Esc 메뉴: 탭 4개(가방 · 미션 · 상태 · 설정). 화면에는 연료만 두고 나머지 정보는 여기서 본다.
+    //   가방 = 물건 칸 옮기기·손에 들기, 미션 = 다음 발송 미션 기준선, 상태 = 행성 생명력·꽃 가방·재료·비료·도구·물뿌리개, 설정 = 시점·마우스 감도
     void BuildSettings()
     {
-        var panel = UiKit.Panel(root, "Settings", UiKit.Cream, UiKit.DarkGreen, 6);
-        settings = panel.Root().Place(new Vector2(0.5f, 0.5f), new Vector2(0, 30), new Vector2(640, 440)).gameObject;
-        UiKit.Label(panel.transform, "설정", 44, UiKit.DarkGreen, TextAnchor.MiddleCenter)
-            .rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0, -20), new Vector2(400, 60));
+        var panel = UiKit.Panel(root, "Menu", UiKit.Cream, UiKit.DarkGreen, 6);
+        settings = panel.Root().Place(new Vector2(0.5f, 0.5f), new Vector2(0, 30), new Vector2(760, 560)).gameObject;
+        UiKit.Label(panel.transform, "메뉴", 40, UiKit.DarkGreen, TextAnchor.MiddleLeft)
+            .rectTransform.Place(new Vector2(0, 1), new Vector2(30, -18), new Vector2(200, 56));
         UiKit.Label(panel.transform, "Esc 닫기", 22, UiKit.Ink, TextAnchor.MiddleRight)
-            .rectTransform.Place(new Vector2(1, 1), new Vector2(-24, -30), new Vector2(200, 40));
+            .rectTransform.Place(new Vector2(1, 1), new Vector2(-24, -26), new Vector2(200, 40));
 
-        viewText = UiKit.Label(panel.transform, "", 26, UiKit.Ink, TextAnchor.MiddleCenter);
-        viewText.rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0, -100), new Vector2(560, 40));
-        var first = UiKit.Button(panel.transform, "1인칭", UiKit.Yellow, () => CameraRig.SetFirstPerson(true));
-        ((RectTransform)first.transform).Place(new Vector2(0.5f, 1), new Vector2(-120, -150), new Vector2(200, 64));
-        var third = UiKit.Button(panel.transform, "3인칭", UiKit.Sky, () => CameraRig.SetFirstPerson(false));
-        ((RectTransform)third.transform).Place(new Vector2(0.5f, 1), new Vector2(120, -150), new Vector2(200, 64));
+        string[] names = { "가방", "미션", "상태", "설정" };
+        menuTabs = new GameObject[names.Length];
+        menuTabButtons = new Image[names.Length];
+        for (int i = 0; i < names.Length; i++)
+        {
+            int index = i;
+            var btn = UiKit.Button(panel.transform, names[i], UiKit.Muted, () => ShowTab(index));
+            ((RectTransform)btn.transform).Place(new Vector2(0.5f, 1), new Vector2(-255 + i * 170, -90), new Vector2(150, 56));
+            menuTabButtons[i] = (Image)btn.targetGraphic;
+            var tab = UiKit.Rect(panel.transform, "Tab_" + names[i]);
+            tab.Place(new Vector2(0.5f, 1), new Vector2(0, -160), new Vector2(700, 380));
+            menuTabs[i] = tab.gameObject;
+        }
 
-        sensitivityText = UiKit.Label(panel.transform, "", 26, UiKit.Ink, TextAnchor.MiddleCenter);
-        sensitivityText.rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0, -250), new Vector2(560, 40));
-        var slower = UiKit.Button(panel.transform, "−", UiKit.Muted, () => CameraRig.SetSensitivity(CameraRig.Sensitivity - 0.03f));
-        ((RectTransform)slower.transform).Place(new Vector2(0.5f, 1), new Vector2(-120, -300), new Vector2(120, 64));
-        var faster = UiKit.Button(panel.transform, "+", UiKit.Muted, () => CameraRig.SetSensitivity(CameraRig.Sensitivity + 0.03f));
-        ((RectTransform)faster.transform).Place(new Vector2(0.5f, 1), new Vector2(120, -300), new Vector2(120, 64));
-        UiKit.Label(panel.transform, "V 키로도 시점을 바꿀 수 있어요", 20, UiKit.Ink, TextAnchor.MiddleCenter)
-            .rectTransform.Place(new Vector2(0.5f, 0), new Vector2(0, 20), new Vector2(560, 34));
+        // 가방 탭: 위 3줄 = 가방(27칸), 아래 1줄 = 아래 칸 1~9. 끌어서 옮기고, 클릭하면 손에 든다.
+        var bag = menuTabs[0].transform;
+        UiKit.Label(bag, "클릭: 손에 들기 · 끌어서 놓기: 자리 바꾸기", 20, UiKit.Ink, TextAnchor.MiddleCenter)
+            .rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0, 0), new Vector2(680, 30));
+        const float cell = 64, step = 72;
+        float left = -(Inventory.HotbarSize * step - (step - cell)) / 2f;
+        for (int i = 0; i < Inventory.BagSize; i++)
+        {
+            int col = i % Inventory.HotbarSize, row = i / Inventory.HotbarSize;
+            MakeSlot(bag, Inventory.HotbarSize + i, new Vector2(left + col * step + cell / 2, -36 - row * step - cell / 2), new Vector2(0.5f, 1), cell, false)
+                .GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
+        }
+        UiKit.Label(bag, "아래 칸 (숫자 키 1~9)", 20, UiKit.DarkGreen, TextAnchor.MiddleLeft)
+            .rectTransform.Place(new Vector2(0.5f, 1), new Vector2(left + 290, -256), new Vector2(580, 26));
+        for (int i = 0; i < Inventory.HotbarSize; i++)
+            MakeSlot(bag, i, new Vector2(left + i * step + cell / 2, -288 - cell / 2), new Vector2(0.5f, 1), cell, true)
+                .GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
+
+        // 미션 탭
+        BuildMission(menuTabs[1].transform);
+
+        // 상태 탭
+        var st = menuTabs[2].transform;
+        (lifeText, lifeBar) = BarRow(st, -10, "행성 생명력", UiKit.Green, 60, 160);
+        bagText = UiKit.Label(st, "", 24, UiKit.Ink);
+        bagText.rectTransform.Place(new Vector2(0, 1), new Vector2(60, -70), new Vector2(600, 36));
+        matText = UiKit.Label(st, "", 24, UiKit.Ink);
+        matText.rectTransform.Place(new Vector2(0, 1), new Vector2(60, -116), new Vector2(600, 36));
+        fertText = UiKit.Label(st, "", 24, UiKit.Ink);
+        fertText.rectTransform.Place(new Vector2(0, 1), new Vector2(60, -162), new Vector2(600, 36));
+        toolText = UiKit.Label(st, "", 24, UiKit.Ink);
+        toolText.rectTransform.Place(new Vector2(0, 1), new Vector2(60, -208), new Vector2(600, 36));
+        canInfoText = UiKit.Label(st, "", 24, UiKit.Ink);
+        canInfoText.rectTransform.Place(new Vector2(0, 1), new Vector2(60, -254), new Vector2(600, 36));
+
+        // 설정 탭: 시점(1인칭/3인칭)과 마우스 감도. 고른 값은 다음에 켜도 남는다(CameraRig).
+        var set = menuTabs[3].transform;
+        viewText = UiKit.Label(set, "", 26, UiKit.Ink, TextAnchor.MiddleCenter);
+        viewText.rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0, -10), new Vector2(560, 40));
+        var first = UiKit.Button(set, "1인칭", UiKit.Yellow, () => CameraRig.SetFirstPerson(true));
+        ((RectTransform)first.transform).Place(new Vector2(0.5f, 1), new Vector2(-120, -60), new Vector2(200, 64));
+        var third = UiKit.Button(set, "3인칭", UiKit.Sky, () => CameraRig.SetFirstPerson(false));
+        ((RectTransform)third.transform).Place(new Vector2(0.5f, 1), new Vector2(120, -60), new Vector2(200, 64));
+        sensitivityText = UiKit.Label(set, "", 26, UiKit.Ink, TextAnchor.MiddleCenter);
+        sensitivityText.rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0, -160), new Vector2(560, 40));
+        var slower = UiKit.Button(set, "−", UiKit.Muted, () => CameraRig.SetSensitivity(CameraRig.Sensitivity - 0.03f));
+        ((RectTransform)slower.transform).Place(new Vector2(0.5f, 1), new Vector2(-120, -210), new Vector2(120, 64));
+        var faster = UiKit.Button(set, "+", UiKit.Muted, () => CameraRig.SetSensitivity(CameraRig.Sensitivity + 0.03f));
+        ((RectTransform)faster.transform).Place(new Vector2(0.5f, 1), new Vector2(120, -210), new Vector2(120, 64));
+        UiKit.Label(set, "V 키로도 시점을 바꿀 수 있어요", 20, UiKit.Ink, TextAnchor.MiddleCenter)
+            .rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0, -310), new Vector2(560, 34));
+
+        ShowTab(0);
         settings.SetActive(false);
+    }
+
+    GameObject[] menuTabs;
+    Image[] menuTabButtons;
+    Text toolText, canInfoText;
+
+    void ShowTab(int index)
+    {
+        for (int i = 0; i < menuTabs.Length; i++)
+        {
+            menuTabs[i].SetActive(i == index);
+            menuTabButtons[i].color = i == index ? UiKit.Yellow : UiKit.Muted;
+        }
     }
 
     // 1인칭 조준점: 화면 가운데 작은 점. 이 쪽에 있는 밭·장치·자원을 고른다.
@@ -526,7 +617,7 @@ public class Hud : MonoBehaviour
         UpdateGreenhousePanel();
         UpdateClock();
         UpdateMission();
-        UpdateHotbar();
+        UpdateSlots();
         UpdateCan();
         UpdatePrompt();
         UpdateToast();
@@ -553,7 +644,7 @@ public class Hud : MonoBehaviour
         if (kb.bKey.wasPressedThisFrame) Toggle(book);
         if (kb.uKey.wasPressedThisFrame) Toggle(upgrade);
 
-        // 숫자 키: 업그레이드 창이 열려 있으면 만들기, 아니면 씨앗 칸 고르기(1~9, 0 = 10번째)
+        // 숫자 키: 업그레이드 창이 열려 있으면 만들기, 아니면 아래 칸 1~9 고르기(손에 들기)
         var keys = new[] { kb.digit1Key, kb.digit2Key, kb.digit3Key, kb.digit4Key, kb.digit5Key, kb.digit6Key, kb.digit7Key, kb.digit8Key, kb.digit9Key, kb.digit0Key };
         for (int i = 0; i < keys.Length; i++)
         {
@@ -563,15 +654,15 @@ public class Hud : MonoBehaviour
                 if (i < Progression.Blueprints.Length) player.Show(gm.Craft(Progression.Blueprints[i]), 3.5f);
                 else if (i == CanUpgradeKey) player.Show(gm.UpgradeCan(), 3.5f);
             }
-            else if (i < gm.Plants.Count) gm.Select(i);
+            else if (i < Inventory.HotbarSize) gm.Inv.Select(i);
         }
 
-        // 1인칭에서는 휠로 씨앗 칸 넘기기(3인칭에서는 휠이 카메라 거리)
+        // 1인칭에서는 휠로 아래 칸 넘기기(3인칭에서는 휠이 카메라 거리)
         var mouse = Mouse.current;
         if (CameraRig.FirstPerson && mouse != null && !AnyPanelOpen)
         {
             float scroll = mouse.scroll.ReadValue().y;
-            if (scroll != 0) gm.Select((gm.SelectedIndex + (scroll < 0 ? 1 : -1) + gm.Plants.Count) % gm.Plants.Count);
+            if (scroll != 0) gm.Inv.Select((gm.Inv.Selected + (scroll < 0 ? 1 : -1) + Inventory.HotbarSize) % Inventory.HotbarSize);
         }
     }
 
@@ -588,15 +679,22 @@ public class Hud : MonoBehaviour
     void UpdateStatus()
     {
         float days = gm.Fuel / Progression.FuelPerDay;
-        fuelText.text = $"{days:0.#}일치";
+        fuelText.text = $"{days:0.#}일 남음";
         UiKit.SetBar(fuelBar, gm.Fuel / Progression.MaxFuel);
+        if (!settings.activeSelf) { UpdateFace(); return; } // 나머지는 Esc 메뉴가 열려 있을 때만
+        toolText.text = "도구 " + (gm.Tools.Count > 0 ? string.Join(", ", gm.Tools.Select(t => Progression.GetTool(t).name)) : "없음");
+        canInfoText.text = $"물뿌리개 Lv{gm.CanLevel} · {gm.CanWater}/{gm.CanCapacity}회 · 강화권 {gm.CanTokens}장";
         lifeText.text = $"{gm.Habitability:P0}";
         UiKit.SetBar(lifeBar, gm.Habitability);
         bagText.text = $"꽃 가방 {gm.FlowerBag.Count}송이 ({gm.BagPoints}점) · 보낸 꽃 {gm.FlowersSent}";
         matText.text = string.Join("  ·  ", Progression.Materials.Select(m => $"{m.name} {gm.MaterialCount(m.id)}"));
         var ferts = Enumerable.Range(1, Progression.FertilizerGrades).Where(g => gm.FertilizerCount(g) > 0).Select(g => $"{g}단계×{gm.FertilizerCount(g)}");
         fertText.text = "비료 " + (ferts.Any() ? string.Join(" ", ferts) : "없음");
+        UpdateFace();
+    }
 
+    void UpdateFace()
+    {
         var f = gm.Fuel < Progression.FuelPerDay * 4 ? faceSleepy : player.CurrentMessage != null ? faceHappy : faceNeutral;
         if (f) face.sprite = f;
     }
@@ -640,22 +738,6 @@ public class Hud : MonoBehaviour
             $"{Check(fin)} 최종 {fin}점 → 넘은 만큼 성적 +";
     }
 
-    void UpdateHotbar()
-    {
-        for (int i = 0; i < slotFill.Length; i++)
-        {
-            var p = gm.Plants[i];
-            int count = gm.SeedCount(p);
-            bool sel = i == gm.SelectedIndex;
-            slotFill[i].color = sel ? UiKit.Yellow : Color.white;
-            slotFill[i].Root().localScale = Vector3.one * (sel ? 1.1f : 1f);
-            if (slotIcon[i].sprite != UiKit.Rounded) slotIcon[i].color = count > 0 ? Color.white : new Color(1, 1, 1, 0.3f);
-            slotCount[i].text = count > 0 ? $"×{count}" : "";
-        }
-        var sp = gm.SelectedPlant;
-        selectedName.text = $"{sp.displayName} 씨앗 ×{gm.SeedCount(sp)}";
-    }
-
     void UpdatePrompt()
     {
         envRows.SetActive(false);
@@ -665,9 +747,16 @@ public class Hud : MonoBehaviour
         {
             promptTitle.text = "지구 송신기";
             bool sendDay = Progression.IsSendDay(gm.Day) && gm.LastMissionDay != gm.Day;
-            promptBody.text = sendDay
-                ? $"오늘은 발송일!\n가방 {gm.FlowerBag.Count}송이 · {gm.BagPoints}점"
-                : $"{(gm.LastMissionDay == gm.Day ? "오늘 미션은 끝났어요" : $"다음 발송 {Progression.NextSendDay(gm.Day)}일차")}\n가방 {gm.FlowerBag.Count}송이 · {gm.BagPoints}점";
+            // 보낼 때 미션 기준선을 같이 보여 준다(평소에는 Esc 메뉴 '미션' 탭)
+            int sendAt = Progression.NextSendDay(gm.Day) + (gm.LastMissionDay == gm.Day ? Progression.SendEveryDays : 0);
+            int mission = Progression.MissionNumber(sendAt), pts = gm.BagPoints;
+            string Line(int line, string reward) => $"{(pts >= line ? "●" : "○")} {line}점 {reward}";
+            promptBody.text =
+                $"{(sendDay ? "오늘은 발송일!" : gm.LastMissionDay == gm.Day ? "오늘 미션은 끝났어요" : $"다음 발송 {sendAt}일차")} · 미션 {mission}\n" +
+                $"가방 {gm.FlowerBag.Count}송이 · {pts}점\n" +
+                $"{Line(Progression.SurviveLine(mission), "생존 → 연료통")}\n" +
+                $"{Line(Progression.UpgradeLine(mission), "업그레이드 → 도구·설계키트")}\n" +
+                $"{Line(Progression.FinalLine(mission), "최종 → 성적 +")}";
             promptKey.text = "E";
             promptAction.text = sendDay ? "꽃을 지구로 보내기" : "아직 보낼 수 없어요";
         }
@@ -719,7 +808,10 @@ public class Hud : MonoBehaviour
         if (spot.IsEmpty)
         {
             promptTitle.text = "빈 밭";
-            promptBody.text = $"빛 {spot.Sun:P0} · 온도 {spot.Temp:P0}\n심을 씨앗: {gm.SelectedPlant.displayName} ×{gm.SeedCount(gm.SelectedPlant)}\n(Tab이나 아래 칸 클릭으로 바꾸기)";
+            var held = gm.Inv.HeldPlant;
+            promptBody.text = $"빛 {spot.Sun:P0} · 온도 {spot.Temp:P0}\n" +
+                (held ? $"심을 씨앗: {held.displayName} ×{gm.SeedCount(held)}" : "손에 씨앗이 없어요") +
+                "\n(숫자 키 1~9 · Esc 가방에서 들기)";
             promptAction.text = "씨앗 심기";
             return;
         }

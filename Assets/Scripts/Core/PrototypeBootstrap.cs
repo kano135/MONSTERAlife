@@ -139,6 +139,7 @@ public static class PrototypeBootstrap
         var cc = robot.AddComponent<CharacterController>();
         cc.height = 1.6f;
         robot.AddComponent<PlayerController>();
+        robot.AddComponent<HandItemView>();
 
         if (RobotSprite.HasArt)
         {
@@ -173,28 +174,17 @@ public static class PrototypeBootstrap
         Part(station.transform, PrimitiveType.Sphere, Vector3.up * 2.3f, new Vector3(1.1f, 0.7f, 1.1f), new Color(0.45f, 0.85f, 0.85f));
     }
 
-    // 채집 자원: 폐허=고철(절단기), 회색 돌=돌멩이(중간 돌은 드릴, 작은 돌은 그냥 줍기), 하늘색 결정=얼음 결정(채수기). 자리는 매번 같다(저장 순서가 맞아야 해서).
+    // 채집 자원: 나무=나무(도끼), 회색 돌=돌멩이(중간 돌은 드릴, 작은 돌은 그냥 줍기), 하늘색 결정=얼음 결정(채수기).
+    // 자리는 정해진 난수로 뽑아서 매번 같다(저장 순서가 맞아야 해서). 나중에 지도를 받으면 자리만 그걸로 바꾸면 된다.
+    const int TreeCount = 30;
+    const int IceCount = 8;
+
     static ResourceNode[] BuildResources()
     {
         var rng = new System.Random(3);
         var nodes = new System.Collections.Generic.List<ResourceNode>();
-        var building = ArtLibrary.World("Props/ruin_building");
-        var car = ArtLibrary.World("Props/ruin_car");
+        var taken = new System.Collections.Generic.List<(Vector3 pos, float radius)>();
 
-        Vector3 RandomPos()
-        {
-            var angle = (float)rng.NextDouble() * Mathf.PI * 2;
-            var dist = 20f + (float)rng.NextDouble() * 18f; // 기지 울타리 밖
-            var pos = new Vector3(Mathf.Cos(angle) * dist, 0, Mathf.Sin(angle) * dist);
-            // 호수에 겹치면 호수 밖으로 밀어낸다(뽑는 횟수는 그대로라 자리·저장 순서가 안 바뀐다)
-            if (Lake.Overlaps(pos, 2.5f))
-            {
-                var away = pos - LakeCenter;
-                away.y = 0;
-                pos = LakeCenter + away.normalized * (LakeRadius + 3f);
-            }
-            return pos;
-        }
         GameObject Add(string name, string material, Vector3 pos)
         {
             var go = new GameObject(name);
@@ -204,31 +194,70 @@ public static class PrototypeBootstrap
             return go;
         }
 
-        for (int i = 0; i < 14; i++)
+        // 나무: 맵에 듬성듬성. 줄기 + 둥근 잎 덩어리 몇 개(임시 도형).
+        var bark = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.45f, 0.3f, 0.18f) };
+        var leaves = new Material[3];
+        for (int k = 0; k < leaves.Length; k++)
+            leaves[k] = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.32f + k * 0.05f, 0.58f + k * 0.04f, 0.28f) };
+        for (int i = 0; i < TreeCount; i++)
         {
-            var go = Add("Ruin_Scrap", "scrap", RandomPos());
-            var art = i % 3 == 2 ? car : building;
-            float h = art == car ? 1.6f : 3f + (float)rng.NextDouble() * 2f;
-            var block = Part(go.transform, PrimitiveType.Cube, Vector3.up * h / 2, new Vector3(2.4f, h, 2.4f), new Color(0.6f, 0.6f, 0.62f));
-            block.AddComponent<BoxCollider>();
-            if (art)
-            {
-                block.GetComponent<Renderer>().enabled = false;
-                Billboard.CreateByHeight(go.transform, art, art == car ? 1.8f : h * 1.1f, Color.white);
-            }
+            if (!FreeSpot(rng, 1.6f, 3f, taken, out var pos)) continue;
+            var go = Add("Tree", "scrap", pos);
+            float size = 0.8f + (float)rng.NextDouble() * 0.5f;
+            go.transform.rotation = Quaternion.Euler(0, (float)rng.NextDouble() * 360f, 0);
+            go.transform.localScale = Vector3.one * size;
+            Shape(go.transform, PrimitiveType.Cylinder, new Vector3(0, 1.4f, 0), new Vector3(0.5f, 1.4f, 0.5f), bark);
+            var leaf = leaves[rng.Next(leaves.Length)];
+            Shape(go.transform, PrimitiveType.Sphere, new Vector3(0, 3.4f, 0), new Vector3(3f, 2.6f, 3f), leaf);
+            Shape(go.transform, PrimitiveType.Sphere, new Vector3(0.9f, 2.9f, 0.3f), new Vector3(1.8f, 1.6f, 1.8f), leaf);
+            Shape(go.transform, PrimitiveType.Sphere, new Vector3(-0.7f, 3.0f, -0.6f), new Vector3(1.6f, 1.5f, 1.6f), leaf);
+            var trunk = go.AddComponent<CapsuleCollider>(); // 줄기만 막는다
+            trunk.radius = 0.35f;
+            trunk.height = 3f;
+            trunk.center = Vector3.up * 1.5f;
+            taken.Add((pos, 1.6f * size));
         }
-        // 예전 보라 바위 10개 자리(뽑기 10번)는 그대로 건너뛴다 → 폐허·얼음 결정 자리가 안 바뀐다
-        for (int i = 0; i < 10; i++) RandomPos();
-        var taken = new System.Collections.Generic.List<(Vector3 pos, float radius)>();
-        foreach (var n in nodes) taken.Add((n.transform.position, 1.8f));
-        for (int i = 0; i < 8; i++)
+
+        for (int i = 0; i < IceCount; i++)
         {
-            var go = Add("Crystal_Ice", "ice", RandomPos());
+            if (!FreeSpot(rng, 0.8f, 1.2f, taken, out var pos)) continue;
+            var go = Add("Crystal_Ice", "ice", pos);
             Part(go.transform, PrimitiveType.Capsule, Vector3.up * 0.8f, new Vector3(0.6f, 0.8f, 0.6f), new Color(0.72f, 0.92f, 1f)).AddComponent<CapsuleCollider>();
-            taken.Add((go.transform.position, 0.8f));
+            taken.Add((pos, 0.8f));
         }
-        BuildStones(nodes, taken, Add);
+        BuildStones(rng, taken, Add);
         return nodes.ToArray();
+    }
+
+    // 맵(울타리 밖)에서 빈자리 찾기: 호수·다른 자원과 gap 이상 떨어지게. 40번 해 봐서 못 찾으면 false.
+    static bool FreeSpot(System.Random rng, float radius, float gap,
+        System.Collections.Generic.List<(Vector3 pos, float radius)> taken, out Vector3 pos)
+    {
+        float lim = GroundView.Size / 2f - radius - 1f;
+        for (int tries = 0; tries < 40; tries++)
+        {
+            pos = new Vector3((float)(rng.NextDouble() * 2 - 1) * lim, 0, (float)(rng.NextDouble() * 2 - 1) * lim);
+            var fromBase = pos - BaseCenter;
+            fromBase.y = 0;
+            if (fromBase.magnitude < FenceRadius + radius + 2f || Lake.Overlaps(pos, radius + 1.5f)) continue;
+            bool clear = true;
+            foreach (var t in taken)
+                if ((t.pos - pos).sqrMagnitude < Sq(t.radius + radius + gap)) { clear = false; break; }
+            if (clear) return true;
+        }
+        pos = default;
+        return false;
+    }
+
+    // 충돌 없는 도형 하나(재질은 나눠 쓴다)
+    static void Shape(Transform parent, PrimitiveType type, Vector3 pos, Vector3 scale, Material mat)
+    {
+        var go = GameObject.CreatePrimitive(type);
+        Object.Destroy(go.GetComponent<Collider>());
+        go.transform.SetParent(parent, false);
+        go.transform.localPosition = pos;
+        go.transform.localScale = scale;
+        go.GetComponent<Renderer>().sharedMaterial = mat;
     }
 
     // 돌멩이: 종류마다 count 개를 맵(울타리 밖)에 흩어 놓는다.
@@ -242,39 +271,21 @@ public static class PrototypeBootstrap
         ("Stone_Small",  100, new Vector3(0.5f, 0.3f, 0.45f), -0.08f, 0.25f, 1, true,  new Color(0.66f, 0.64f, 0.6f)),
     };
 
-    static void BuildStones(System.Collections.Generic.List<ResourceNode> nodes,
+    static void BuildStones(System.Random rng,
         System.Collections.Generic.List<(Vector3 pos, float radius)> taken,
         System.Func<string, string, Vector3, GameObject> add)
     {
-        var rng = new System.Random(11);
-        float edge = GroundView.Size / 2f;
         var lit = Shader.Find("Universal Render Pipeline/Lit");
-
         foreach (var s in Stones)
         {
-            // 돌이 수백 개라 색은 몇 가지 재질을 나눠 쓴다(돌마다 재질을 만들면 느려진다)
+            // 돌이 많아서 색은 몇 가지 재질을 나눠 쓴다(돌마다 재질을 만들면 느려진다)
             var shades = new Material[4];
             for (int k = 0; k < shades.Length; k++) shades[k] = new Material(lit) { color = s.color * (0.88f + k * 0.08f) };
 
             for (int i = 0; i < s.count; i++)
             {
-                // 빈자리 찾기: 울타리 밖, 호수·다른 자원과 안 겹치게. 못 찾으면 그 돌은 건너뛴다.
-                Vector3 pos = default;
-                bool found = false;
-                for (int tries = 0; tries < 40 && !found; tries++)
-                {
-                    float lim = edge - s.radius - 1f;
-                    pos = new Vector3((float)(rng.NextDouble() * 2 - 1) * lim, 0, (float)(rng.NextDouble() * 2 - 1) * lim);
-                    var fromBase = pos - BaseCenter;
-                    fromBase.y = 0;
-                    if (fromBase.magnitude < FenceRadius + s.radius + 2f || Lake.Overlaps(pos, s.radius + 1.5f)) continue;
-                    found = true;
-                    float gap = s.pickup ? 0.2f : 1.2f; // 바위 사이는 로봇이 지나갈 틈을 남긴다
-                    foreach (var t in taken)
-                        if ((t.pos - pos).sqrMagnitude < Sq(t.radius + s.radius + gap)) { found = false; break; }
-                }
-                if (!found) continue;
-
+                // 바위 사이는 로봇이 지나갈 틈을 남긴다. 못 찾으면 그 돌은 건너뛴다.
+                if (!FreeSpot(rng, s.radius, s.pickup ? 0.2f : 1.2f, taken, out var pos)) continue;
                 var go = add(s.name, "ore", pos);
                 go.transform.rotation = Quaternion.Euler(0, (float)rng.NextDouble() * 360f, 0);
                 var node = go.GetComponent<ResourceNode>();

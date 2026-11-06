@@ -40,7 +40,8 @@ public class GameManager : MonoBehaviour
     public Ending Result { get; private set; }
     public bool IsGameOver => Result != Ending.None;
     public float Habitability => Mathf.Clamp01(HarvestCount / (float)HarvestsForFullHabitability);
-    public PlantData SelectedPlant => Plants[selected];
+    // 가진 물건의 칸 순서(아래 칸 1~9 + 가방). 손에 든 씨앗으로 심는다.
+    public Inventory Inv { get; private set; }
 
     // 물뿌리개: 레벨(1~4), 남은 물(횟수), 미션으로 받은 강화권
     public int CanLevel { get; private set; } = 1;
@@ -48,11 +49,12 @@ public class GameManager : MonoBehaviour
     public int CanTokens { get; private set; }
     public int CanCapacity => Progression.CanCapacity[CanLevel - 1];
     public bool CanMaxed => CanLevel >= Progression.CanMaxLevel;
+    // 물을 줄 때마다(손에 든 물뿌리개 기울이기 등)
+    public event Action Poured;
 
     readonly Dictionary<string, int> seeds = new Dictionary<string, int>();
     readonly Dictionary<string, int> materials = new Dictionary<string, int>();
     int[] fertilizer = new int[Progression.FertilizerGrades];
-    int selected;
     int rewardsGiven;
     Vector3 homePosition;
 
@@ -66,6 +68,7 @@ public class GameManager : MonoBehaviour
         Nodes = nodes;
         Player = player;
         homePosition = player.position;
+        Inv = new Inventory(this);
         Load();
         ApplyUpgrades();
     }
@@ -79,13 +82,13 @@ public class GameManager : MonoBehaviour
     // 비료 1~5단계 가진 개수
     public int FertilizerCount(int grade) => fertilizer[grade - 1];
 
-    // 밭에서 F: 가진 비료 중 가장 높은 단계를 준다
+    // 밭에서 F: 손에 든 비료가 있으면 그 단계, 아니면 가진 비료 중 가장 높은 단계를 준다
     public string Fertilize(PlantSpot spot)
     {
         if (!spot.CanFertilize) return spot.IsEmpty ? "씨앗을 심은 뒤에 비료를 줄 수 있어요" : "자라는 중인 꽃에만 비료를 줄 수 있어요";
-        int grade = 0;
-        for (int g = Progression.FertilizerGrades; g >= 1; g--)
-            if (fertilizer[g - 1] > 0) { grade = g; break; }
+        int grade = Inv.HeldFertilizer > 0 && FertilizerCount(Inv.HeldFertilizer) > 0 ? Inv.HeldFertilizer : 0;
+        for (int g = Progression.FertilizerGrades; g >= 1 && grade == 0; g--)
+            if (fertilizer[g - 1] > 0) grade = g;
         if (grade == 0) return "비료가 없어요. 미션 업그레이드선을 넘으면 지구가 보내 줘요";
         if (grade <= spot.FertilizerGrade) return $"이미 비료 {spot.FertilizerGrade}단계를 줬어요";
         fertilizer[grade - 1]--;
@@ -93,26 +96,13 @@ public class GameManager : MonoBehaviour
         return $"비료 {grade}단계를 줬어요! 수확할 때까지 ×{Progression.FertilizerBoost(grade):0.##} 빨리 자라요";
     }
 
-    public int SelectedIndex => selected;
-    public void Select(int index) => selected = Mathf.Clamp(index, 0, Plants.Count - 1);
-
-    // 가진 씨앗 중 다음 종으로 넘긴다
-    public void SelectNext()
-    {
-        for (int i = 1; i <= Plants.Count; i++)
-        {
-            int next = (selected + i) % Plants.Count;
-            if (SeedCount(Plants[next]) > 0) { selected = next; return; }
-        }
-    }
-
     // 밭에서 E: 비었으면 심고, 썩었으면 치우고, 피었으면 수확하고, 자라는 중이면 물 준다. 화면에 띄울 말을 돌려준다.
     public string Interact(PlantSpot spot)
     {
         if (spot.IsEmpty)
         {
-            var p = SelectedPlant;
-            if (SeedCount(p) <= 0) return "심을 씨앗이 없어요 (Tab으로 바꾸기)";
+            var p = Inv.HeldPlant;
+            if (!p || SeedCount(p) <= 0) return "씨앗을 손에 들어야 심어요 (숫자 키 1~9 · Esc 가방)";
             seeds[p.id]--;
             spot.PlantSeed(p);
             return $"{p.displayName} 씨앗을 심었어요";
@@ -137,6 +127,7 @@ public class GameManager : MonoBehaviour
         }
         if (CanWater <= 0) return "물뿌리개가 비었어요! 기지 남서쪽 호수에서 E로 채우세요";
         CanWater--;
+        Poured?.Invoke();
         if (spot.AddWater(Progression.WaterPerPour)) return $"물을 너무 많이 줘서 꽃이 썩었어요… (물뿌리개 {CanWater}/{CanCapacity})";
         return $"물을 줬어요 (수분 {spot.Water:P0} · 물뿌리개 {CanWater}/{CanCapacity})" + (CanWater == 0 ? "\n물이 떨어졌어요. 호수에서 채우세요" : "");
     }
@@ -239,6 +230,7 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        Inv.Sync(); // 새로 얻은 물건은 빈 칸에, 다 쓴 물건 칸은 비운다
         if (IsGameOver) return;
         Minute += 10f / Progression.RealSecondsPer10Minutes * Time.deltaTime;
         if (Minute >= Progression.DayEndMinute) EndDay(passedOut: true);
@@ -317,6 +309,8 @@ public class GameManager : MonoBehaviour
             lastMissionDay = LastMissionDay,
             rewardsGiven = rewardsGiven,
             fertilizer = fertilizer.ToArray(),
+            inventory = Inv.ToSave(),
+            heldSlot = Inv.Selected,
             canLevel = CanLevel,
             canWater = CanWater,
             canTokens = CanTokens,
@@ -351,6 +345,7 @@ public class GameManager : MonoBehaviour
             CanWater = CanCapacity;
             AddSeed(Plants[0], 3);
             if (Plants.Count > 1) AddSeed(Plants[1], 2);
+            Inv.Sync();
             return;
         }
 
@@ -384,6 +379,7 @@ public class GameManager : MonoBehaviour
             for (int i = 0; i < Nodes.Length; i++)
                 Nodes[i].Amount = Mathf.Clamp(save.nodeAmounts[i], 0, Nodes[i].maxAmount);
         if (Greenhouse.Instance) Greenhouse.Instance.FromSave(save.greenhouse);
+        Inv.FromSave(save.inventory, save.heldSlot); // 옛 저장(칸 순서 없음)이면 가진 것부터 차례로 채운다
     }
 
     [Serializable]
@@ -407,6 +403,8 @@ public class GameManager : MonoBehaviour
         public int harvestCount, flowersSent, day, missionBonus, lastMissionDay, rewardsGiven;
         public int canLevel, canWater, canTokens;
         public int[] fertilizer;
+        public List<string> inventory;
+        public int heldSlot;
         public float fuel, minute;
         public List<SpotSave> spots = new List<SpotSave>();
         public List<int> nodeAmounts = new List<int>();

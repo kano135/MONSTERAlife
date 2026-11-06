@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// 행성에서 캐는 재료 덩어리(고철 더미·돌멩이·얼음 결정). 보통은 맞는 도구가 있어야 캔다(GameManager.Gather).
+// 행성에서 캐는 재료 덩어리(나무·돌멩이·얼음 결정). 보통은 맞는 도구가 있어야 캔다(GameManager.Gather).
 // 하루에 maxAmount 번 캘 수 있고, 다음 날 다시 찬다.
 // 작은 돌처럼 도구 없이 줍는 것(needsTool = false)은 다 주우면 사라졌다가(hideWhenEmpty) 다음 날 다시 생긴다.
 public class ResourceNode : MonoBehaviour

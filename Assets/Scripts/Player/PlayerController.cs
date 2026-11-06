@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 // AI 로봇 조작: WASD 이동, Shift 달리기, Space 점프, E 심기·물주기·수확·채집·지구로 보내기·호수에서 물 채우기,
-// Q(기지 충전기 옆) 충전하고 하루 끝내기, Tab 씨앗 바꾸기
+// Q(기지 충전기 옆) 충전하고 하루 끝내기, Tab 다음 칸(손에 든 것) 바꾸기
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
@@ -95,7 +95,7 @@ public class PlayerController : MonoBehaviour
         }
         if (kb.fKey.wasPressedThisFrame && NearestSpot) Show(gm.Fertilize(NearestSpot), 3f);
         if (kb.qKey.wasPressedThisFrame && NearPad) gm.EndDay(passedOut: false);
-        if (kb.tabKey.wasPressedThisFrame) gm.SelectNext();
+        if (kb.tabKey.wasPressedThisFrame) gm.Inv.SelectNextFilled();
     }
 
     float Dist(Component c) => (c.transform.position - transform.position).sqrMagnitude;

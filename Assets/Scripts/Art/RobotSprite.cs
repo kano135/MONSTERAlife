@@ -9,6 +9,9 @@ public class RobotSprite : MonoBehaviour
     Sprite front, back, side;
     Vector3 lastPos;
 
+    // 걸을 때 그림이 위로 튀는 높이(손에 든 것도 같이 움직이게 HandItemView 가 쓴다)
+    public float Bob { get; private set; }
+
     public static bool HasArt => ArtLibrary.World("Robot/robot_front");
 
     void Start()
@@ -28,7 +31,12 @@ public class RobotSprite : MonoBehaviour
         lastPos = transform.position;
         move.y = 0;
         var cam = Camera.main;
-        if (!cam || move.sqrMagnitude < 0.0001f) return;
+        if (!cam || move.sqrMagnitude < 0.0001f)
+        {
+            Bob = 0;
+            board.transform.localPosition = Vector3.down * 0.8f;
+            return;
+        }
 
         float toward = Vector3.Dot(move.normalized, Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized);
         float sideways = Vector3.Dot(move.normalized, cam.transform.right);
@@ -37,6 +45,7 @@ public class RobotSprite : MonoBehaviour
         else if (toward < -0.6f) { sr.sprite = front; sr.flipX = false; }
         else { sr.sprite = side; sr.flipX = sideways < 0; }
         // 걸을 때 통통 튀기
-        board.transform.localPosition = Vector3.down * 0.8f + Vector3.up * Mathf.Abs(Mathf.Sin(Time.time * 12f)) * 0.06f;
+        Bob = Mathf.Abs(Mathf.Sin(Time.time * 12f)) * 0.06f;
+        board.transform.localPosition = Vector3.down * 0.8f + Vector3.up * Bob;
     }
 }

@@ -90,14 +90,14 @@ public static class Progression
 
     public static readonly Material[] Materials =
     {
-        new Material("scrap", "고철"),
+        new Material("scrap", "나무"),
         new Material("ore", "돌멩이"),
         new Material("ice", "얼음 결정"),
     };
 
     public static readonly Tool[] Tools =
     {
-        new Tool("cutter", "절단기", "scrap"),
+        new Tool("cutter", "도끼", "scrap"),
         new Tool("drill", "드릴", "ore"),
         new Tool("pump", "채수기", "ice"),
     };
