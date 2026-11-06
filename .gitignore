@@ -38,3 +38,6 @@ crashlytics-build.properties
 /Screenshots/
 /autoplay.flag
 /autostop.flag
+
+# 맥이 만드는 파일
+.DS_Store
