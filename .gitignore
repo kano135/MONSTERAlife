@@ -41,3 +41,7 @@ crashlytics-build.properties
 
 # 맥이 만드는 파일
 .DS_Store
+
+# 공개 저장소에 올리지 않는 그림
+/Assets/Resources/Art/UI/title_bg.png
+/Assets/Resources/Art/UI/title_bg.png.meta
