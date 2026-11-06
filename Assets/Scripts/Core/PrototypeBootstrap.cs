@@ -36,6 +36,7 @@ public static class PrototypeBootstrap
         systems.AddComponent<GameManager>().Init(plants, spots, nodes, player);
         systems.AddComponent<SeedSpawner>().Init(plants);
         systems.AddComponent<Hud>().player = player.GetComponent<PlayerController>();
+        systems.AddComponent<TitleScreen>();
 #if UNITY_EDITOR
         systems.AddComponent<DevScreenshots>();
 #endif
@@ -172,7 +173,7 @@ public static class PrototypeBootstrap
         Part(station.transform, PrimitiveType.Sphere, Vector3.up * 2.3f, new Vector3(1.1f, 0.7f, 1.1f), new Color(0.45f, 0.85f, 0.85f));
     }
 
-    // 채집 자원: 폐허=고철(절단기), 보라 바위=광석(드릴), 하늘색 결정=얼음 결정(채수기). 자리는 매번 같다(저장 순서가 맞아야 해서).
+    // 채집 자원: 폐허=고철(절단기), 회색 돌=돌멩이(중간 돌은 드릴, 작은 돌은 그냥 줍기), 하늘색 결정=얼음 결정(채수기). 자리는 매번 같다(저장 순서가 맞아야 해서).
     static ResourceNode[] BuildResources()
     {
         var rng = new System.Random(3);
@@ -216,18 +217,84 @@ public static class PrototypeBootstrap
                 Billboard.CreateByHeight(go.transform, art, art == car ? 1.8f : h * 1.1f, Color.white);
             }
         }
-        for (int i = 0; i < 10; i++)
-        {
-            var go = Add("Rock_Ore", "ore", RandomPos());
-            Part(go.transform, PrimitiveType.Sphere, Vector3.up * 0.4f, new Vector3(1.6f, 1f, 1.4f), new Color(0.55f, 0.42f, 0.72f)).AddComponent<SphereCollider>();
-        }
+        // 예전 보라 바위 10개 자리(뽑기 10번)는 그대로 건너뛴다 → 폐허·얼음 결정 자리가 안 바뀐다
+        for (int i = 0; i < 10; i++) RandomPos();
+        var taken = new System.Collections.Generic.List<(Vector3 pos, float radius)>();
+        foreach (var n in nodes) taken.Add((n.transform.position, 1.8f));
         for (int i = 0; i < 8; i++)
         {
             var go = Add("Crystal_Ice", "ice", RandomPos());
             Part(go.transform, PrimitiveType.Capsule, Vector3.up * 0.8f, new Vector3(0.6f, 0.8f, 0.6f), new Color(0.72f, 0.92f, 1f)).AddComponent<CapsuleCollider>();
+            taken.Add((go.transform.position, 0.8f));
         }
+        BuildStones(nodes, taken, Add);
         return nodes.ToArray();
     }
+
+    // 돌멩이: 종류마다 count 개를 맵(울타리 밖)에 흩어 놓는다.
+    //   중간 돌 = 길을 막는 바위(예전 보라 바위 크기). 드릴로 캔다.
+    //   작은 돌 = 땅에 박혀 머리만 살짝 보인다(높이 약 0.07m). 밟고 지나가고, 도구 없이 E로 줍는다.
+    //             주우면 사라졌다가 다음 날 다시 생긴다.
+    // scale = 공 크기, y = 공 가운데 높이(음수면 땅에 묻힘), radius = 자리 잡을 때 쓰는 크기, amount = 하루에 얻는 개수.
+    static readonly (string name, int count, Vector3 scale, float y, float radius, int amount, bool pickup, Color color)[] Stones =
+    {
+        ("Stone_Medium", 10,   new Vector3(1.6f, 1f, 1.4f),    0.4f,   0.8f,  3, false, new Color(0.6f, 0.58f, 0.55f)),
+        ("Stone_Small",  100, new Vector3(0.5f, 0.3f, 0.45f), -0.08f, 0.25f, 1, true,  new Color(0.66f, 0.64f, 0.6f)),
+    };
+
+    static void BuildStones(System.Collections.Generic.List<ResourceNode> nodes,
+        System.Collections.Generic.List<(Vector3 pos, float radius)> taken,
+        System.Func<string, string, Vector3, GameObject> add)
+    {
+        var rng = new System.Random(11);
+        float edge = GroundView.Size / 2f;
+        var lit = Shader.Find("Universal Render Pipeline/Lit");
+
+        foreach (var s in Stones)
+        {
+            // 돌이 수백 개라 색은 몇 가지 재질을 나눠 쓴다(돌마다 재질을 만들면 느려진다)
+            var shades = new Material[4];
+            for (int k = 0; k < shades.Length; k++) shades[k] = new Material(lit) { color = s.color * (0.88f + k * 0.08f) };
+
+            for (int i = 0; i < s.count; i++)
+            {
+                // 빈자리 찾기: 울타리 밖, 호수·다른 자원과 안 겹치게. 못 찾으면 그 돌은 건너뛴다.
+                Vector3 pos = default;
+                bool found = false;
+                for (int tries = 0; tries < 40 && !found; tries++)
+                {
+                    float lim = edge - s.radius - 1f;
+                    pos = new Vector3((float)(rng.NextDouble() * 2 - 1) * lim, 0, (float)(rng.NextDouble() * 2 - 1) * lim);
+                    var fromBase = pos - BaseCenter;
+                    fromBase.y = 0;
+                    if (fromBase.magnitude < FenceRadius + s.radius + 2f || Lake.Overlaps(pos, s.radius + 1.5f)) continue;
+                    found = true;
+                    float gap = s.pickup ? 0.2f : 1.2f; // 바위 사이는 로봇이 지나갈 틈을 남긴다
+                    foreach (var t in taken)
+                        if ((t.pos - pos).sqrMagnitude < Sq(t.radius + s.radius + gap)) { found = false; break; }
+                }
+                if (!found) continue;
+
+                var go = add(s.name, "ore", pos);
+                go.transform.rotation = Quaternion.Euler(0, (float)rng.NextDouble() * 360f, 0);
+                var node = go.GetComponent<ResourceNode>();
+                node.maxAmount = node.Amount = s.amount;
+                node.needsTool = !s.pickup;
+                node.hideWhenEmpty = s.pickup;
+
+                var rock = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                rock.name = "Rock";
+                if (s.pickup) Object.Destroy(rock.GetComponent<Collider>()); // 밟고 지나간다
+                rock.transform.SetParent(go.transform, false);
+                rock.transform.localPosition = Vector3.up * s.y;
+                rock.transform.localScale = s.scale;
+                rock.GetComponent<Renderer>().sharedMaterial = shades[rng.Next(shades.Length)];
+                taken.Add((pos, s.radius));
+            }
+        }
+    }
+
+    static float Sq(float x) => x * x;
 
     public static GameObject Part(Transform parent, PrimitiveType type, Vector3 pos, Vector3 scale, Color color)
     {

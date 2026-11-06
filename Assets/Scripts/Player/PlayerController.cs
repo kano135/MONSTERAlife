@@ -108,7 +108,7 @@ public class PlayerController : MonoBehaviour
         var look = Vector3.ProjectOnPlane(Camera.main.transform.forward, Vector3.up);
         foreach (var item in items)
         {
-            if (!item.gameObject.activeInHierarchy) continue; // 아직 안 연 밭
+            if (!item.gameObject.activeInHierarchy) continue; // 아직 안 연 밭, 다 주운 작은 돌
             var to = item.transform.position - transform.position;
             float d = to.sqrMagnitude;
             if (CameraRig.FirstPerson && Vector3.Angle(look, Vector3.ProjectOnPlane(to, Vector3.up)) > 35f) continue;

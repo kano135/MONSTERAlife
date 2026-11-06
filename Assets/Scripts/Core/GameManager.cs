@@ -165,11 +165,11 @@ public class GameManager : MonoBehaviour
     {
         var mat = Progression.GetMaterial(node.materialId);
         var tool = Progression.ToolFor(node.materialId);
-        if (!Tools.Contains(tool.id)) return $"{mat.name}을(를) 캐려면 {tool.name}이(가) 필요해요. 지구에 꽃을 보내면 받을 수 있어요";
+        if (node.needsTool && !Tools.Contains(tool.id)) return $"{mat.name}을(를) 캐려면 {tool.name}이(가) 필요해요. 지구에 꽃을 보내면 받을 수 있어요";
         if (node.Amount <= 0) return "다 캤어요. 내일 다시 생겨요";
         node.Take();
         AddMaterial(mat.id, 1);
-        return $"{mat.name} +1 (가진 것 {MaterialCount(mat.id)})";
+        return $"{mat.name} {(node.needsTool ? "+1" : "1개 주웠어요")} (가진 것 {MaterialCount(mat.id)})";
     }
 
     // 송신기에서 E: 발송일(5일마다)에 한 번, 가방의 꽃을 전부 보내 미션을 판정한다(기준선은 Progression).
@@ -379,8 +379,10 @@ public class GameManager : MonoBehaviour
 
         for (int i = 0; i < Spots.Length && i < save.spots.Count; i++)
             Spots[i].FromSave(save.spots[i], Plants.Find(p => p.id == save.spots[i].plantId));
-        for (int i = 0; i < Nodes.Length && i < save.nodeAmounts.Count; i++)
-            Nodes[i].Amount = save.nodeAmounts[i];
+        // 채집 자원 수가 바뀐 옛 저장(예: 보라 바위 → 돌멩이)이면 순서가 안 맞으니 오늘 양은 가득 찬 채로 둔다
+        if (save.nodeAmounts.Count == Nodes.Length)
+            for (int i = 0; i < Nodes.Length; i++)
+                Nodes[i].Amount = Mathf.Clamp(save.nodeAmounts[i], 0, Nodes[i].maxAmount);
         if (Greenhouse.Instance) Greenhouse.Instance.FromSave(save.greenhouse);
     }
 

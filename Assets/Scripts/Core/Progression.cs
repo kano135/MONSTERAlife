@@ -91,7 +91,7 @@ public static class Progression
     public static readonly Material[] Materials =
     {
         new Material("scrap", "고철"),
-        new Material("ore", "광석"),
+        new Material("ore", "돌멩이"),
         new Material("ice", "얼음 결정"),
     };
 

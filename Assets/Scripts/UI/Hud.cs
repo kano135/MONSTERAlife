@@ -509,7 +509,7 @@ public class Hud : MonoBehaviour
     {
         if (!gm || !root) return;
         HandleKeys();
-        AnyPanelOpen = gm.IsGameOver || book.activeSelf || upgrade.activeSelf || settings.activeSelf || intro.activeSelf;
+        AnyPanelOpen = TitleScreen.Showing || gm.IsGameOver || book.activeSelf || upgrade.activeSelf || settings.activeSelf || intro.activeSelf;
         crosshair.SetActive(CameraRig.FirstPerson && !AnyPanelOpen);
         if (settings.activeSelf)
         {
@@ -538,7 +538,7 @@ public class Hud : MonoBehaviour
     void HandleKeys()
     {
         var kb = Keyboard.current;
-        if (kb == null) return;
+        if (kb == null || TitleScreen.Showing) return; // 시작 화면에서는 단축키를 안 받는다
         if (gm.IsGameOver)
         {
             if (kb.rKey.wasPressedThisFrame) gm.Restart();
@@ -699,10 +699,12 @@ public class Hud : MonoBehaviour
             var node = player.NearestNode;
             var mat = Progression.GetMaterial(node.materialId);
             var tool = Progression.ToolFor(node.materialId);
-            bool has = gm.Tools.Contains(tool.id);
-            promptTitle.text = mat.name;
-            promptBody.text = has ? $"오늘 남은 양 {node.Amount}/{node.maxAmount}\n(다음 날 다시 차요)" : $"'{tool.name}'이(가) 있어야 캘 수 있어요.\n미션 업그레이드선을 넘으면 받아요.";
-            promptAction.text = has ? "채집하기" : "도구 없음";
+            bool has = !node.needsTool || gm.Tools.Contains(tool.id);
+            promptTitle.text = node.needsTool ? mat.name : $"작은 {mat.name}";
+            promptBody.text = !node.needsTool ? "땅에 박힌 작은 돌이에요.\n도구 없이 주울 수 있어요. (다음 날 다시 생겨요)"
+                : has ? $"오늘 남은 양 {node.Amount}/{node.maxAmount}\n(다음 날 다시 차요)"
+                : $"'{tool.name}'이(가) 있어야 캘 수 있어요.\n미션 업그레이드선을 넘으면 받아요.";
+            promptAction.text = !node.needsTool ? "줍기" : has ? "채집하기" : "도구 없음";
         }
         else
         {

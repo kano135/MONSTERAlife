@@ -3,7 +3,7 @@ using UnityEngine;
 // 땅: 황무지 그림 위에 풀밭 그림을 깔고, 행성 생명력(거주 가능도)만큼 풀밭이 진해진다. 하늘 그림도 여기서 건다.
 public class GroundView : MonoBehaviour
 {
-    const float Size = 80f;
+    public const float Size = 80f;
     const float Tiles = 10f;
     static readonly Color DeadColor = new Color(0.55f, 0.52f, 0.5f);
     static readonly Color AliveColor = new Color(0.55f, 0.82f, 0.45f);

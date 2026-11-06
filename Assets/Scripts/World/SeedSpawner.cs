@@ -42,7 +42,7 @@ public class SeedSpawner : MonoBehaviour
             float angle = Random.value * Mathf.PI * 2;
             float dist = Random.Range(minRadius, maxRadius);
             pos = new Vector3(Mathf.Cos(angle) * dist, 0.6f, Mathf.Sin(angle) * dist);
-        } while (Lake.Overlaps(pos, 1f) && ++tries < 10);
+        } while ((Lake.Overlaps(pos, 1f) || !OnGround(ref pos)) && ++tries < 10);
 
         GameObject seed;
         var art = ArtLibrary.World("Props/seed");
@@ -62,6 +62,15 @@ public class SeedSpawner : MonoBehaviour
         var pickup = seed.AddComponent<SeedPickup>();
         pickup.plant = plant;
         alive.Add(pickup);
+    }
+
+    // 위에서 아래로 쏴서 씨앗을 땅(또는 큰 돌 언덕) 위에 올린다. 폐허 지붕처럼 높은 곳이면 false → 다시 뽑기.
+    static bool OnGround(ref Vector3 pos)
+    {
+        if (!Physics.Raycast(new Vector3(pos.x, 30f, pos.z), Vector3.down, out var hit, 60f)) return true;
+        if (hit.point.y > 1.2f) return false;
+        pos.y = hit.point.y + 0.6f;
+        return true;
     }
 
     // 희귀도 1 → 가중치 5, 희귀도 5 → 가중치 1
