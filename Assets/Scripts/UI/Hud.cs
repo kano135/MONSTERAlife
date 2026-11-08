@@ -600,7 +600,7 @@ public class Hud : MonoBehaviour
     {
         if (!gm || !root) return;
         HandleKeys();
-        AnyPanelOpen = TitleScreen.Showing || gm.IsGameOver || book.activeSelf || upgrade.activeSelf || settings.activeSelf || intro.activeSelf;
+        AnyPanelOpen = TitleScreen.Showing || gm.Sleeping || gm.IsGameOver || book.activeSelf || upgrade.activeSelf || settings.activeSelf || intro.activeSelf;
         crosshair.SetActive(CameraRig.FirstPerson && !AnyPanelOpen);
         if (settings.activeSelf)
         {
@@ -629,7 +629,7 @@ public class Hud : MonoBehaviour
     void HandleKeys()
     {
         var kb = Keyboard.current;
-        if (kb == null || TitleScreen.Showing) return; // 시작 화면에서는 단축키를 안 받는다
+        if (kb == null || TitleScreen.Showing || gm.Sleeping) return; // 시작 화면·잠자는 중에는 단축키를 안 받는다
         if (gm.IsGameOver)
         {
             if (kb.rKey.wasPressedThisFrame) gm.Restart();
@@ -763,7 +763,7 @@ public class Hud : MonoBehaviour
         else if (player.NearPad)
         {
             promptTitle.text = "기지 충전기";
-            promptBody.text = $"충전하고 쉬면 다음 날 아침이 돼요.\n하루에 연료 {Progression.FuelPerDay:0}씩 써요.\n(새벽 2시가 되면 저절로 여기로 와요)";
+            promptBody.text = $"충전하고 쉬면 다음 날 아침이 돼요.\n하루에 연료 {Progression.FuelPerDay:0}씩 써요.\n(새벽 2시가 되면 어디서든 그 자리에서 잠들어요)";
             promptKey.text = "Q";
             promptAction.text = "충전하고 하루 끝내기";
         }
@@ -776,6 +776,12 @@ public class Hud : MonoBehaviour
                 ? $"고장 나서 {d.Stat} 수치가 점점 나빠지고 있어요.\n그대로 두면 꽃이 느리게 자라요."
                 : $"세기를 바꾸면 {d.Stat} 수치를 맞춰요(약·중·강).\n꽃마다 좋아하는 {d.Stat} 수치가 달라요.";
             promptAction.text = d.Broken ? "고치기" : "세기 바꾸기";
+        }
+        else if (player.NearBaseDoor || player.NearExitDoor)
+        {
+            promptTitle.text = "기지 문";
+            promptBody.text = player.NearBaseDoor ? "기지 안은 바깥보다 훨씬 넓어요." : "밖으로 나가면 계단 위로 나와요.";
+            promptAction.text = player.NearBaseDoor ? "들어가기" : "밖으로 나가기";
         }
         else if (player.NearLake)
         {

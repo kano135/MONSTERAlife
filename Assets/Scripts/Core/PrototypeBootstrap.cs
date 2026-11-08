@@ -38,6 +38,7 @@ public static class PrototypeBootstrap
         systems.AddComponent<SeedSpawner>().Init(plants);
         systems.AddComponent<Hud>().player = player.GetComponent<PlayerController>();
         systems.AddComponent<TitleScreen>();
+        Eyelids.Build();
 #if UNITY_EDITOR
         systems.AddComponent<DevScreenshots>();
 #endif
@@ -112,6 +113,7 @@ public static class PrototypeBootstrap
             wall.transform.localScale = new Vector3(length, 1f, 0.25f);
             wall.GetComponent<Renderer>().material.color = new Color(0.78f, 0.6f, 0.42f);
         }
+        BaseInterior.Build(dome); // 계단 오르기 + 문으로 들어가는 넓은 안쪽 방
         return pad.position;
     }
 

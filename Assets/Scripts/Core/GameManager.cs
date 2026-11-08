@@ -56,7 +56,6 @@ public class GameManager : MonoBehaviour
     readonly Dictionary<string, int> materials = new Dictionary<string, int>();
     int[] fertilizer = new int[Progression.FertilizerGrades];
     int rewardsGiven;
-    Vector3 homePosition;
 
     string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -67,7 +66,6 @@ public class GameManager : MonoBehaviour
         Spots = spots;
         Nodes = nodes;
         Player = player;
-        homePosition = player.position;
         Inv = new Inventory(this);
         Load();
         ApplyUpgrades();
@@ -234,12 +232,44 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         Inv.Sync(); // 새로 얻은 물건은 빈 칸에, 다 쓴 물건 칸은 비운다
-        if (IsGameOver) return;
+        if (IsGameOver || Sleeping) return;
         Minute += 10f / Progression.RealSecondsPer10Minutes * Time.deltaTime;
-        if (Minute >= Progression.DayEndMinute) EndDay(passedOut: true);
+        if (Minute >= Progression.DayEndMinute) Sleep(passedOut: true);
     }
 
-    // 하루 끝: 새벽 2시가 되거나 송신기에서 Q(충전하고 쉬기). 연료는 하루가 끝날 때 하루치 빠진다.
+    // 잠자는 중(눈 감기 → 하루 넘김 → 눈 뜨기). 이 동안 시계·로봇이 멈춘다(Hud.AnyPanelOpen).
+    public bool Sleeping { get; private set; }
+
+    // 잠들기: 새벽 2시면 어디에 있든 그 자리에서 쓰러져 잠든다(passedOut). 충전기에서 Q 도 같은 잠.
+    // 눈이 감기고 → 하루가 넘어가며 연료 하루치가 빠지고 → 그 자리에서 눈을 뜬다.
+    // 연료(15일치)가 바닥나면 눈을 감은 채 잠들고, 그다음 게임오버(잠드는 엔딩) 화면이 뜬다.
+    public void Sleep(bool passedOut)
+    {
+        if (Sleeping || IsGameOver) return;
+        StartCoroutine(SleepRoutine(passedOut));
+    }
+
+    System.Collections.IEnumerator SleepRoutine(bool passedOut)
+    {
+        Sleeping = true;
+        var lids = Eyelids.Instance;
+        string text = passedOut ? "새벽 2시… 배터리가 다 됐어요\nZzz…" : "충전하며 쉬는 중… Zzz";
+        if (lids) yield return lids.Close(passedOut ? 2.2f : 1.2f, text);
+        string msg = EndDay(passedOut);
+        if (lids) yield return new WaitForSecondsRealtime(1.3f);
+        if (IsGameOver)
+        {
+            // 연료 바닥: 눈을 뜨지 못하고 그대로 잠든다 → 엔딩 화면
+            if (lids) { yield return new WaitForSecondsRealtime(1.2f); lids.Hide(); }
+            Sleeping = false;
+            yield break;
+        }
+        if (lids) yield return lids.Open(1.2f);
+        Sleeping = false;
+        Player.GetComponent<PlayerController>().Show(msg, 4f);
+    }
+
+    // 하루 끝(잠에서 깰 때): 연료 하루치를 쓰고 다음 날 아침으로. 로봇은 잠든 자리 그대로.
     public string EndDay(bool passedOut)
     {
         if (Day < Progression.TotalDays)
@@ -256,9 +286,6 @@ public class GameManager : MonoBehaviour
         Day++;
         Minute = Progression.DayStartMinute;
         foreach (var n in Nodes) n.Refill();
-        Player.GetComponent<CharacterController>().enabled = false; // 순간이동하려면 잠깐 꺼야 한다
-        Player.position = homePosition;
-        Player.GetComponent<CharacterController>().enabled = true;
 
         if (Day > Progression.TotalDays)
         {
@@ -267,9 +294,10 @@ public class GameManager : MonoBehaviour
             return "100일이 지났어요. 지구로 돌아갑니다";
         }
         Save();
-        string msg = passedOut ? $"새벽 2시, 배터리가 떨어져 기지로 돌아왔어요. {Day}일차" : $"충전 완료. {Day}일차 아침이에요";
-        Player.GetComponent<PlayerController>().Show(msg, 4f);
-        return msg;
+        float days = Fuel / Progression.FuelPerDay;
+        return passedOut
+            ? $"쓰러졌던 자리에서 깼어요. {Day}일차 아침 · 연료 {days:0.#}일 남음"
+            : $"충전 완료. {Day}일차 아침이에요 · 연료 {days:0.#}일 남음";
     }
 
     // 성적표 (100점 만점)
