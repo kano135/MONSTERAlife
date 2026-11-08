@@ -27,6 +27,9 @@ public static class Progression
     //   최종선 넘음      → 최종선을 넘은 만큼이 성적 점수로 쌓임
     // 미션 n(1~20)의 생존선 = 3 + n. 업그레이드선은 2배, 최종선은 3배.
     public const float MissionFuel = 50f; // 5일치
+
+    // ★ 테스트용: 물건 칸에 무제한 연료통(들고 E → 연료 MissionFuel 만큼). 정식 게임에서는 false 로 끈다.
+    public const bool TestInfiniteFuel = true;
     public static int MissionNumber(int day) => day / SendEveryDays;
     public static int SurviveLine(int mission) => 3 + mission;
     public static int UpgradeLine(int mission) => SurviveLine(mission) * 2;

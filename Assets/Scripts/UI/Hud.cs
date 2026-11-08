@@ -301,10 +301,10 @@ public class Hud : MonoBehaviour
             v.icon.color = sprite ? Color.white : inv.Tint(key);
             float full = ((RectTransform)v.transform).sizeDelta.x - 14;
             v.icon.rectTransform.sizeDelta = Vector2.one * (sprite ? full : full * 0.55f);
-            v.count.text = key == Inventory.CanKey ? $"{gm.CanWater}/{gm.CanCapacity}" : $"×{inv.Count(key)}";
+            v.count.text = key == Inventory.CanKey ? $"{gm.CanWater}/{gm.CanCapacity}" : key == Inventory.FuelKey ? "∞" : $"×{inv.Count(key)}";
         }
         string heldKey = inv.HeldKey;
-        selectedName.text = heldKey == "" ? "빈 손" : heldKey == Inventory.CanKey ? $"물뿌리개 {gm.CanWater}/{gm.CanCapacity}" : $"{inv.Name(heldKey)} ×{inv.Count(heldKey)}";
+        selectedName.text = heldKey == "" ? "빈 손" : heldKey == Inventory.CanKey ? $"물뿌리개 {gm.CanWater}/{gm.CanCapacity}" : heldKey == Inventory.FuelKey ? "연료통 ∞ · E 연료 채우기" : $"{inv.Name(heldKey)} ×{inv.Count(heldKey)}";
     }
 
     // ●●○ 처럼 남은 횟수. 칸이 많으면(8회 이상) 숫자만.

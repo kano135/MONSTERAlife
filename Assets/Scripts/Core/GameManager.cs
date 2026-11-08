@@ -133,6 +133,14 @@ public class GameManager : MonoBehaviour
         return $"물을 줬어요 (수분 {spot.Water:P0} · 물뿌리개 {CanWater}/{CanCapacity})" + (CanWater == 0 ? "\n물이 떨어졌어요. 호수에서 채우세요" : "");
     }
 
+    // 테스트용 연료통을 들고 E: 연료 MissionFuel(5일치)만큼, 최대치까지
+    public string UseFuelCan()
+    {
+        if (Fuel >= Progression.MaxFuel) return $"연료가 이미 가득 찼어요 ({Fuel / Progression.FuelPerDay:0.#}일치)";
+        Fuel = Mathf.Min(Progression.MaxFuel, Fuel + Progression.MissionFuel);
+        return $"연료통을 썼어요! 연료 {Fuel / Progression.FuelPerDay:0.#}일치 (테스트용 무제한)";
+    }
+
     // 호수에서 E: 물뿌리개를 가득 채운다
     public string RefillCan()
     {

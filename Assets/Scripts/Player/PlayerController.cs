@@ -94,7 +94,8 @@ public class PlayerController : MonoBehaviour
         NearExitDoor = bi && bi.NearInsideDoor(transform.position);
         if (kb.eKey.wasPressedThisFrame)
         {
-            if (NearStation) Show(gm.SendToEarth(), 4f);
+            if (gm.Inv.HeldKey == Inventory.FuelKey) Show(gm.UseFuelCan(), 3f); // 테스트용 연료통은 어디서든
+            else if (NearStation) Show(gm.SendToEarth(), 4f);
             else if (NearestSpot) Show(gm.Interact(NearestSpot), 3f);
             else if (NearestDevice) Show(NearestDevice.Use(), 3f);
             else if (NearBaseDoor) bi.Enter(transform);
