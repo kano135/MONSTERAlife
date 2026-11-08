@@ -45,3 +45,7 @@ crashlytics-build.properties
 # 공개 저장소에 올리지 않는 그림
 /Assets/Resources/Art/UI/title_bg.png
 /Assets/Resources/Art/UI/title_bg.png.meta
+
+# Stylized Nature Pack (soresa-assets): 게임에 쓰는 건 자유지만 모델·텍스처 파일 재배포 금지 → 공개 저장소에 올리지 않는다
+/Assets/Resources/StylizedNaturePack_FreeSampler/
+/Assets/Resources/StylizedNaturePack_FreeSampler.meta

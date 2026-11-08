@@ -195,7 +195,9 @@ public static class PrototypeBootstrap
             return go;
         }
 
-        // 나무: 맵에 듬성듬성. 줄기 + 둥근 잎 덩어리 몇 개(임시 도형).
+        // 나무: 맵에 듬성듬성. Stylized Nature Pack 나무 모델(6종), 팩이 없으면 줄기 + 둥근 잎 덩어리(임시 도형).
+        // 어떤 모델을 쓸지는 따로 뽑아서(look), 팩이 있든 없든 나무 자리는 같다.
+        var look = new System.Random(77);
         var bark = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.45f, 0.3f, 0.18f) };
         var leaves = new Material[3];
         for (int k = 0; k < leaves.Length; k++)
@@ -207,15 +209,22 @@ public static class PrototypeBootstrap
             float size = 0.8f + (float)rng.NextDouble() * 0.5f;
             go.transform.rotation = Quaternion.Euler(0, (float)rng.NextDouble() * 360f, 0);
             go.transform.localScale = Vector3.one * size;
-            Shape(go.transform, PrimitiveType.Cylinder, new Vector3(0, 1.4f, 0), new Vector3(0.5f, 1.4f, 0.5f), bark);
             var leaf = leaves[rng.Next(leaves.Length)];
-            Shape(go.transform, PrimitiveType.Sphere, new Vector3(0, 3.4f, 0), new Vector3(3f, 2.6f, 3f), leaf);
-            Shape(go.transform, PrimitiveType.Sphere, new Vector3(0.9f, 2.9f, 0.3f), new Vector3(1.8f, 1.6f, 1.8f), leaf);
-            Shape(go.transform, PrimitiveType.Sphere, new Vector3(-0.7f, 3.0f, -0.6f), new Vector3(1.6f, 1.5f, 1.6f), leaf);
-            var trunk = go.AddComponent<CapsuleCollider>(); // 줄기만 막는다
-            trunk.radius = 0.35f;
-            trunk.height = 3f;
-            trunk.center = Vector3.up * 1.5f;
+            var model = NaturePack.Spawn(NaturePack.Trees[look.Next(NaturePack.Trees.Length)], go.transform, Vector3.zero, 0, 1f); // 실제 크기(나무 4~6m) × 자리마다 0.8~1.3배
+            if (!model)
+            {
+                Shape(go.transform, PrimitiveType.Cylinder, new Vector3(0, 1.4f, 0), new Vector3(0.5f, 1.4f, 0.5f), bark);
+                Shape(go.transform, PrimitiveType.Sphere, new Vector3(0, 3.4f, 0), new Vector3(3f, 2.6f, 3f), leaf);
+                Shape(go.transform, PrimitiveType.Sphere, new Vector3(0.9f, 2.9f, 0.3f), new Vector3(1.8f, 1.6f, 1.8f), leaf);
+                Shape(go.transform, PrimitiveType.Sphere, new Vector3(-0.7f, 3.0f, -0.6f), new Vector3(1.6f, 1.5f, 1.6f), leaf);
+            }
+            if (!model || !NaturePack.HasCollider(model))
+            {
+                var trunk = go.AddComponent<CapsuleCollider>(); // 줄기만 막는다
+                trunk.radius = 0.35f;
+                trunk.height = 3f;
+                trunk.center = Vector3.up * 1.5f;
+            }
             taken.Add((pos, 1.6f * size));
         }
 
@@ -227,6 +236,7 @@ public static class PrototypeBootstrap
             taken.Add((pos, 0.8f));
         }
         BuildStones(rng, taken, Add);
+        BuildDecor(taken);
         return nodes.ToArray();
     }
 
@@ -294,19 +304,52 @@ public static class PrototypeBootstrap
                 node.needsTool = !s.pickup;
                 node.hideWhenEmpty = s.pickup;
 
+                var shade = shades[rng.Next(shades.Length)];
+                // 중간 돌은 팩의 바위 모델(있으면)
+                var rockModel = s.pickup ? null : NaturePack.Spawn(NaturePack.Rocks[(int)(pos.x * 7 + pos.z * 13) & 1], go.transform, Vector3.zero, 0, 1.1f);
+                if (rockModel)
+                {
+                    if (!NaturePack.HasCollider(rockModel)) rockModel.AddComponent<SphereCollider>().center = Vector3.up * 0.5f;
+                    taken.Add((pos, s.radius));
+                    continue;
+                }
                 var rock = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 rock.name = "Rock";
                 if (s.pickup) Object.Destroy(rock.GetComponent<Collider>()); // 밟고 지나간다
                 rock.transform.SetParent(go.transform, false);
                 rock.transform.localPosition = Vector3.up * s.y;
                 rock.transform.localScale = s.scale;
-                rock.GetComponent<Renderer>().sharedMaterial = shades[rng.Next(shades.Length)];
+                rock.GetComponent<Renderer>().sharedMaterial = shade;
                 taken.Add((pos, s.radius));
             }
         }
     }
 
     static float Sq(float x) => x * x;
+
+    // 꾸미기(자원 아님): 팩이 있을 때만. 꽃덤불·해바라기·빨간 버섯을 들판에, 선인장을 여기저기, 폭포 둘레에 야자수·현무암 기둥.
+    static readonly (string model, int count, float minScale, float maxScale, float radius)[] Decor =
+    {
+        ("bush_flower_01",      45, 1.0f, 1.5f, 0.8f),
+        ("flower_sunflower_01", 25, 1.0f, 1.4f, 0.6f),
+        ("mushroom_red_01",     35, 1.6f, 2.6f, 0.4f),
+        ("cactus_saguaro_01",   10, 1.0f, 1.4f, 1.2f),
+    };
+
+    static void BuildDecor(System.Collections.Generic.List<(Vector3 pos, float radius)> taken)
+    {
+        if (!NaturePack.Available) return;
+        var rng = new System.Random(31);
+        var root = new GameObject("Decor").transform;
+        foreach (var d in Decor)
+            for (int i = 0; i < d.count; i++)
+            {
+                if (!FreeSpot(rng, d.radius, 0.6f, taken, out var pos)) continue;
+                float scale = d.minScale + (float)rng.NextDouble() * (d.maxScale - d.minScale);
+                NaturePack.Spawn(d.model, root, pos, (float)rng.NextDouble() * 360f, scale);
+                taken.Add((pos, d.radius * scale));
+            }
+    }
 
     public static GameObject Part(Transform parent, PrimitiveType type, Vector3 pos, Vector3 scale, Color color)
     {

@@ -79,7 +79,12 @@ public class Cliff : MonoBehaviour
             if (z > ClimbStartZ && z < ClimbEndZ + 4f) continue; // 길 끝에서 꼭대기로 올라서는 자리
             var cap = PrototypeBootstrap.Part(t, PrimitiveType.Cube, new Vector3(Face - 2f, Height + 0.6f, z), new Vector3(5f, 1.6f + (float)rng.NextDouble() * 2f, 4.5f), Stone[rng.Next(Stone.Length)]);
             cap.transform.localRotation = Quaternion.Euler(0, (float)rng.NextDouble() * 40 - 20, (float)rng.NextDouble() * 10 - 5);
-            if (i % 3 == 0) TopTree(t, new Vector3(Face - 6f, Height, z + 1.5f), 1f + (float)rng.NextDouble() * 0.4f);
+            if (i % 3 == 0)
+            {
+                float size = 1f + (float)rng.NextDouble() * 0.4f;
+                var pine = NaturePack.Spawn(i % 2 == 0 ? "tree_alpine_pine_03" : "tree_pine_02", t, new Vector3(Face - 6f, Height, z + 1.5f), z * 37f, 1.3f * size);
+                if (!pine) TopTree(t, new Vector3(Face - 6f, Height, z + 1.5f), size);
+            }
         }
 
         BuildClimb(t, rng);
@@ -132,7 +137,31 @@ public class Cliff : MonoBehaviour
             c.transform.localRotation = Quaternion.Euler((float)rng.NextDouble() * 30 - 15, 0, (float)rng.NextDouble() * 30 - 15);
             c.name = "CaveCrystal";
         }
+        Dress(t);
         return cliff;
+    }
+
+    // 팩이 있으면: 동굴 안 빛나는 버섯, 웅덩이 둘레 야자수·현무암 기둥
+    static void Dress(Transform t)
+    {
+        if (!NaturePack.Available) return;
+        for (int i = 0; i < 8; i++)
+        {
+            float side = i % 2 == 0 ? -1 : 1;
+            var pos = new Vector3(Face - 2.5f - i * 0.9f, 0, side * (CaveHalfWidth - 0.7f));
+            NaturePack.Spawn("mushroom_glow_01", t, pos, i * 47f, 3f + (i % 3) * 0.6f);
+        }
+        NaturePack.Spawn("mushroom_glow_01", t, new Vector3(Face - CaveDepth + 1.2f, 0, -1.5f), 20f, 4f);
+        NaturePack.Spawn("mushroom_glow_01", t, new Vector3(Face - CaveDepth + 1.2f, 0, 1.8f), 200f, 3.5f);
+        // 웅덩이 둘레(오르는 길 반대쪽 -z 와 앞쪽)
+        var pool = PoolCenter;
+        NaturePack.Spawn("tree_palm_02", t, pool + new Vector3(4f, 0, -PoolRadius - 3f), 30f, 1.1f);
+        NaturePack.Spawn("tree_palm_02", t, pool + new Vector3(9f, 0, -PoolRadius + 1f), 140f, 0.9f);
+        NaturePack.Spawn("tree_palm_02", t, pool + new Vector3(PoolRadius + 4f, 0, 3f), 250f, 1f);
+        NaturePack.Spawn("basalt_columns_02", t, pool + new Vector3(-1f, 0, -PoolRadius - 1.5f), 10f, 1.4f);
+        NaturePack.Spawn("basalt_columns_02", t, pool + new Vector3(2f, 0, -PoolRadius - 6f), 80f, 1.1f);
+        NaturePack.Spawn("bush_flower_01", t, pool + new Vector3(PoolRadius + 1.5f, 0, -2f), 0f, 1.3f);
+        NaturePack.Spawn("bush_flower_01", t, pool + new Vector3(PoolRadius + 1f, 0, 6f), 90f, 1.1f);
     }
 
     void Update()
