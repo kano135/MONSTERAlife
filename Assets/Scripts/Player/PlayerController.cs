@@ -17,6 +17,7 @@ public class PlayerController : MonoBehaviour
     public bool NearStation { get; private set; }
     public bool NearPad { get; private set; }
     public bool NearLake { get; private set; }
+    public SeedPickup NearestSeed { get; private set; }
     public GreenhouseDevice NearestDevice { get; private set; }
     public bool InGreenhouse { get; private set; }
     public string CurrentMessage => Time.time < messageUntil ? message : null;
@@ -85,12 +86,14 @@ public class PlayerController : MonoBehaviour
         NearStation = station && (station.transform.position - transform.position).sqrMagnitude < station.range * station.range;
         NearPad = pad && (pad.transform.position - transform.position).sqrMagnitude < pad.range * pad.range;
         NearLake = Lake.Instance && Lake.Instance.InReach(transform.position);
+        NearestSeed = FindNearest(SeedPickup.All, interactRange);
         if (kb.eKey.wasPressedThisFrame)
         {
             if (NearStation) Show(gm.SendToEarth(), 4f);
             else if (NearestSpot) Show(gm.Interact(NearestSpot), 3f);
             else if (NearestDevice) Show(NearestDevice.Use(), 3f);
             else if (NearLake) Show(gm.RefillCan(), 3f);
+            else if (NearestSeed) Show(NearestSeed.Pick());
             else if (NearestNode) Show(gm.Gather(NearestNode), 3.5f);
         }
         if (kb.fKey.wasPressedThisFrame && NearestSpot) Show(gm.Fertilize(NearestSpot), 3f);
@@ -101,7 +104,7 @@ public class PlayerController : MonoBehaviour
     float Dist(Component c) => (c.transform.position - transform.position).sqrMagnitude;
 
     // 가까운 것 고르기. 1인칭에서는 화면 가운데(조준점) 쪽에 있는 것만 고른다.
-    T FindNearest<T>(T[] items, float range) where T : Component
+    T FindNearest<T>(System.Collections.Generic.IReadOnlyList<T> items, float range) where T : Component
     {
         T best = null;
         float bestDist = range * range;

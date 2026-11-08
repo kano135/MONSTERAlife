@@ -41,21 +41,22 @@ public class SeedSpawner : MonoBehaviour
         {
             float angle = Random.value * Mathf.PI * 2;
             float dist = Random.Range(minRadius, maxRadius);
-            pos = new Vector3(Mathf.Cos(angle) * dist, 0.6f, Mathf.Sin(angle) * dist);
+            pos = new Vector3(Mathf.Cos(angle) * dist, 0f, Mathf.Sin(angle) * dist);
         } while ((Lake.Overlaps(pos, 1f) || !OnGround(ref pos)) && ++tries < 10);
 
         GameObject seed;
         var art = ArtLibrary.World("Props/seed");
+        // 씨앗은 크게, 땅에 살짝 박힌 모양(아래쪽 SeedBuried 만큼이 땅속). 움직이지 않는다.
         if (art)
         {
             // 씨앗 그림은 하나라서 식물 색을 살짝 입혀 구분한다
             seed = new GameObject();
-            seed.transform.position = pos + Vector3.down * 0.4f;
-            Billboard.CreateByHeight(seed.transform, art, 0.8f, Color.Lerp(Color.white, plant.color, 0.45f));
+            seed.transform.position = pos + Vector3.down * SeedHeight * SeedBuried;
+            Billboard.CreateByHeight(seed.transform, art, SeedHeight, Color.Lerp(Color.white, plant.color, 0.45f));
         }
         else
         {
-            seed = PrototypeBootstrap.Part(null, PrimitiveType.Sphere, pos, Vector3.one * 0.4f, plant.color);
+            seed = PrototypeBootstrap.Part(null, PrimitiveType.Sphere, pos + Vector3.up * SeedHeight * (0.5f - SeedBuried), new Vector3(0.75f, 1f, 0.75f) * SeedHeight, plant.color);
             Destroy(seed.GetComponent<Collider>());
         }
         seed.name = $"Seed_{plant.id}";
@@ -64,12 +65,15 @@ public class SeedSpawner : MonoBehaviour
         alive.Add(pickup);
     }
 
-    // 위에서 아래로 쏴서 씨앗을 땅 위에 올린다. 나무 줄기·바위 꼭대기처럼 높은 곳이면 false → 다시 뽑기.
+    const float SeedHeight = 1.3f;  // 씨앗 그림 높이(m). 예전 0.8
+    const float SeedBuried = 0.3f;  // 그중 땅에 묻히는 비율
+
+    // 위에서 아래로 쏴서 씨앗 자리를 땅 높이에 맞춘다. 바위 위·나무 줄기처럼 땅이 아니면 false → 다시 뽑기.
     static bool OnGround(ref Vector3 pos)
     {
         if (!Physics.Raycast(new Vector3(pos.x, 30f, pos.z), Vector3.down, out var hit, 60f)) return true;
-        if (hit.point.y > 1.2f) return false;
-        pos.y = hit.point.y + 0.6f;
+        if (hit.point.y > 0.2f) return false;
+        pos.y = hit.point.y;
         return true;
     }
 

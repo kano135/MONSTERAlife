@@ -1,24 +1,23 @@
+using System.Collections.Generic;
 using UnityEngine;
 
-// 탐험하다 줍는 씨앗. 로봇이 가까이 가면 가방에 들어간다.
+// 탐험하다 줍는 씨앗. 땅에 살짝 박혀 있고, 가까이 가서 E를 눌러야 주워진다(PlayerController).
 public class SeedPickup : MonoBehaviour
 {
+    // 지금 맵에 있는 씨앗 전부(로봇이 가장 가까운 것을 찾을 때 쓴다)
+    public static readonly List<SeedPickup> All = new List<SeedPickup>();
+
     public PlantData plant;
-    public float pickupRange = 1.3f;
 
-    Vector3 basePosition;
+    void OnEnable() => All.Add(this);
+    void OnDisable() => All.Remove(this);
 
-    void Start() => basePosition = transform.position;
-
-    void Update()
+    // E로 줍기: 가방(물건 칸)에 넣고 사라진다. 화면에 띄울 말을 돌려준다.
+    public string Pick()
     {
-        transform.Rotate(0, 90f * Time.deltaTime, 0);
-        transform.position = basePosition + Vector3.up * Mathf.Sin(Time.time * 2f) * 0.15f;
-
         var gm = GameManager.Instance;
-        if (!gm || (gm.Player.position - basePosition).sqrMagnitude > pickupRange * pickupRange) return;
         gm.AddSeed(plant, 1);
-        gm.Player.GetComponent<PlayerController>().Show($"{plant.displayName} 씨앗을 주웠어요");
         Destroy(gameObject);
+        return $"{plant.displayName} 씨앗을 주웠어요";
     }
 }

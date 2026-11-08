@@ -783,6 +783,13 @@ public class Hud : MonoBehaviour
             promptBody.text = $"물뿌리개 Lv{gm.CanLevel} · {gm.CanWater}/{gm.CanCapacity}회\n여기서 물뿌리개를 가득 채울 수 있어요.\n(미션 생존선을 넘어 받은 강화권으로 U 창에서 강화)";
             promptAction.text = gm.CanWater >= gm.CanCapacity ? "이미 가득 찼어요" : "물 채우기";
         }
+        else if (player.NearestSeed)
+        {
+            var p = player.NearestSeed.plant;
+            promptTitle.text = $"{p.displayName} 씨앗";
+            promptBody.text = $"땅에 박힌 씨앗이에요. {new string('★', p.rarity)}\n주워서 비닐하우스 빈 밭에 심어요.";
+            promptAction.text = "줍기";
+        }
         else if (player.NearestNode)
         {
             var node = player.NearestNode;
