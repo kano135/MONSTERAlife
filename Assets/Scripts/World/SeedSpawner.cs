@@ -6,7 +6,7 @@ using UnityEngine;
 // 흔한 식물(희귀도 낮음)일수록 자주 나온다.
 public class SeedSpawner : MonoBehaviour
 {
-    public int maxSeeds = 24;
+    public int maxSeeds = 60;
     public float respawnSeconds = 20f;
     public float minRadius = 19f; // 기지 울타리 밖
     public float maxRadius = GroundView.Size / 2f - 4f;

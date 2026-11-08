@@ -40,7 +40,7 @@ public class DayNight : MonoBehaviour
         (26 * 60, Night),
     };
 
-    const float FogStart = 45f, FogEnd = 150f;
+    const float FogStart = 90f, FogEnd = 320f; // 멀리 있는 절벽도 흐릿하게 보이게
 
     Light sun;
     Material skyMat;

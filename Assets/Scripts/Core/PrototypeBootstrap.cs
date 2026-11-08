@@ -177,8 +177,8 @@ public static class PrototypeBootstrap
 
     // 채집 자원: 나무=나무(도끼), 회색 돌=돌멩이(중간 돌은 드릴, 작은 돌은 그냥 줍기), 하늘색 결정=얼음 결정(채수기).
     // 자리는 정해진 난수로 뽑아서 매번 같다(저장 순서가 맞아야 해서). 나중에 지도를 받으면 자리만 그걸로 바꾸면 된다.
-    const int TreeCount = 30;
-    const int IceCount = 8;
+    const int TreeCount = 90; // 맵 320m 기준 듬성듬성
+    const int IceCount = 16;
 
     static ResourceNode[] BuildResources()
     {

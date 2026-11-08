@@ -4,8 +4,8 @@ using UnityEngine;
 // 하늘과 시간대 색(Tint)은 DayNight 가 정한다.
 public class GroundView : MonoBehaviour
 {
-    public const float Size = 160f; // 맵 한 변(미터). 처음 80 → 2배
-    const float Tiles = 20f; // 맵이 커져도 땅 무늬 크기는 그대로
+    public const float Size = 320f; // 맵 한 변(미터). 처음 80 → 160 → 320
+    const float Tiles = 40f; // 맵이 커져도 땅 무늬 크기는 그대로
     static readonly Color DeadColor = new Color(0.55f, 0.52f, 0.5f);
     static readonly Color AliveColor = new Color(0.55f, 0.82f, 0.45f);
 
@@ -21,6 +21,7 @@ public class GroundView : MonoBehaviour
         var grassTex = ArtLibrary.Texture("Textures/ground_grass");
 
         var deadPlane = Plane(view.transform, "Dead", 0f);
+        EdgeWalls(view.transform);
         view.dead = deadPlane.material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
         if (deadTex)
         {
@@ -47,6 +48,25 @@ public class GroundView : MonoBehaviour
         if (dead.mainTexture) dead.color = Tint;
         else dead.color = Color.Lerp(DeadColor, AliveColor, grass ? 0 : gm.Habitability) * Tint;
         if (grass) grass.color = new Color(Tint.r, Tint.g, Tint.b, gm.Habitability);
+    }
+
+    // 맵 끝 보이지 않는 벽: 땅 밖으로 떨어지지 않게
+    static void EdgeWalls(Transform parent)
+    {
+        float h = Size / 2f;
+        foreach (var (pos, size) in new[]
+        {
+            (new Vector3(h + 0.5f, 25f, 0), new Vector3(1f, 50f, Size + 2f)),
+            (new Vector3(-h - 0.5f, 25f, 0), new Vector3(1f, 50f, Size + 2f)),
+            (new Vector3(0, 25f, h + 0.5f), new Vector3(Size + 2f, 50f, 1f)),
+            (new Vector3(0, 25f, -h - 0.5f), new Vector3(Size + 2f, 50f, 1f)),
+        })
+        {
+            var wall = new GameObject("EdgeWall").AddComponent<BoxCollider>();
+            wall.transform.SetParent(parent, false);
+            wall.transform.position = pos;
+            wall.size = size;
+        }
     }
 
     static Renderer Plane(Transform parent, string name, float y)
