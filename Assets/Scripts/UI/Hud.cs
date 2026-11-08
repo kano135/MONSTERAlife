@@ -301,10 +301,10 @@ public class Hud : MonoBehaviour
             v.icon.color = sprite ? Color.white : inv.Tint(key);
             float full = ((RectTransform)v.transform).sizeDelta.x - 14;
             v.icon.rectTransform.sizeDelta = Vector2.one * (sprite ? full : full * 0.55f);
-            v.count.text = $"×{inv.Count(key)}";
+            v.count.text = key == Inventory.CanKey ? $"{gm.CanWater}/{gm.CanCapacity}" : $"×{inv.Count(key)}";
         }
         string heldKey = inv.HeldKey;
-        selectedName.text = heldKey == "" ? "빈 손 (물뿌리개)" : $"{inv.Name(heldKey)} ×{inv.Count(heldKey)}";
+        selectedName.text = heldKey == "" ? "빈 손" : heldKey == Inventory.CanKey ? $"물뿌리개 {gm.CanWater}/{gm.CanCapacity}" : $"{inv.Name(heldKey)} ×{inv.Count(heldKey)}";
     }
 
     // ●●○ 처럼 남은 횟수. 칸이 많으면(8회 이상) 숫자만.
@@ -839,6 +839,7 @@ public class Hud : MonoBehaviour
             envText[i].text = $"{values[i]:P0}";
         }
         promptAction.text = spot.IsBloomed ? "수확하기"
+            : !gm.Inv.HeldCan ? "물뿌리개를 들어야 물 줘요"
             : gm.CanWater <= 0 ? "물뿌리개 비었음 → 호수에서 채우기"
             : spot.Water >= 1f ? $"물 주기 {gm.CanWater}/{gm.CanCapacity} (! 썩어요)"
             : $"물 주기 (물뿌리개 {gm.CanWater}/{gm.CanCapacity})";

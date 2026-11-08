@@ -125,6 +125,9 @@ public class GameManager : MonoBehaviour
             string name = variant ? p.variantName : p.displayName;
             return (isNew ? $"새로 발견! {name} 도감 등록. " : $"{name} 수확. ") + "송신기로 지구에 보내세요";
         }
+        if (!Inv.HeldCan) return Inv.HeldPlant
+            ? "여기는 이미 심겨 있어요. 빈 밭(둔덕 없는 칸)에 심어요"
+            : "물을 주려면 물뿌리개를 손에 들어요 (숫자 키 · Esc 가방)";
         if (CanWater <= 0) return "물뿌리개가 비었어요! 기지 남서쪽 호수에서 E로 채우세요";
         CanWater--;
         Poured?.Invoke();

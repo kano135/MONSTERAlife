@@ -21,7 +21,7 @@ public static class PrototypeBootstrap
         if (Object.FindFirstObjectByType<GameManager>()) return;
 
         var plants = PlantCatalog.Load();
-        GroundView.Build();
+        DayNight.Build(GroundView.Build()); // 시간대에 따라 하늘·땅·빛 색이 바뀐다
         var home = BuildBase();
         var player = BuildRobot(home);
         var spots = BuildGreenhouse();

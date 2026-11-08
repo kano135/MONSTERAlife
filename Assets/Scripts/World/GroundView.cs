@@ -1,6 +1,7 @@
 using UnityEngine;
 
-// 땅: 황무지 그림 위에 풀밭 그림을 깔고, 행성 생명력(거주 가능도)만큼 풀밭이 진해진다. 하늘 그림도 여기서 건다.
+// 땅: 황무지 그림 위에 풀밭 그림을 깔고, 행성 생명력(거주 가능도)만큼 풀밭이 진해진다.
+// 하늘과 시간대 색(Tint)은 DayNight 가 정한다.
 public class GroundView : MonoBehaviour
 {
     public const float Size = 160f; // 맵 한 변(미터). 처음 80 → 2배
@@ -9,6 +10,9 @@ public class GroundView : MonoBehaviour
     static readonly Color AliveColor = new Color(0.55f, 0.82f, 0.45f);
 
     Material dead, grass;
+
+    // 시간대 색(DayNight 가 매 프레임 넣는다). 땅 그림에 곱한다.
+    public Color Tint { get; set; } = Color.white;
 
     public static GroundView Build()
     {
@@ -33,16 +37,6 @@ public class GroundView : MonoBehaviour
             view.grass.mainTextureScale = Vector2.one * Tiles;
         }
 
-        var sky = ArtLibrary.Texture("Textures/sky");
-        var skyShader = Shader.Find("Skybox/Panoramic");
-        if (sky && skyShader)
-        {
-            var m = new Material(skyShader);
-            m.SetTexture("_MainTex", sky);
-            m.SetFloat("_ImageType", 1); // 180도 그림을 뒤쪽에 거울로 붙인다
-            m.SetFloat("_MirrorOnBack", 1);
-            RenderSettings.skybox = m;
-        }
         return view;
     }
 
@@ -50,8 +44,9 @@ public class GroundView : MonoBehaviour
     {
         var gm = GameManager.Instance;
         if (!gm) return;
-        if (grass) grass.color = new Color(1, 1, 1, gm.Habitability);
-        else if (!dead.mainTexture) dead.color = Color.Lerp(DeadColor, AliveColor, gm.Habitability);
+        if (dead.mainTexture) dead.color = Tint;
+        else dead.color = Color.Lerp(DeadColor, AliveColor, grass ? 0 : gm.Habitability) * Tint;
+        if (grass) grass.color = new Color(Tint.r, Tint.g, Tint.b, gm.Habitability);
     }
 
     static Renderer Plane(Transform parent, string name, float y)

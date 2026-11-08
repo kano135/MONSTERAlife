@@ -5,7 +5,7 @@ using UnityEngine;
 //   0~8 = 아래 칸(숫자 키 1~9), 9~35 = 가방(Esc 메뉴 '가방' 탭).
 //   처음 얻은 물건은 비어 있는 앞 칸부터 차례로 들어간다(번호를 미리 정해 두지 않음). 다 쓰면 그 칸은 비워진다.
 //   가방 탭에서 마우스로 끌어 자리를 바꾸고, 클릭하면 손에 든다.
-// 칸에 들어가는 열쇠: "seed:<식물id>", "mat:<재료id>", "fert:<단계>". 빈 칸은 "".
+// 칸에 들어가는 열쇠: "tool:can"(물뿌리개, 늘 1개), "seed:<식물id>", "mat:<재료id>", "fert:<단계>". 빈 칸은 "".
 public class Inventory
 {
     public const int HotbarSize = 9;
@@ -23,12 +23,14 @@ public class Inventory
         for (int i = 0; i < Size; i++) Slots[i] = "";
     }
 
+    public const string CanKey = "tool:can";
     public static string SeedKey(PlantData p) => "seed:" + p.id;
     public static string MaterialKey(string id) => "mat:" + id;
     public static string FertilizerKey(int grade) => "fert:" + grade;
 
     public string HeldKey => Slots[Selected];
     public PlantData HeldPlant => PlantOf(HeldKey);
+    public bool HeldCan => HeldKey == CanKey;
     public int HeldFertilizer => HeldKey.StartsWith("fert:") ? int.Parse(HeldKey.Substring(5)) : 0;
 
     public void Select(int hotbarIndex) => Selected = Mathf.Clamp(hotbarIndex, 0, HotbarSize - 1);
@@ -57,6 +59,7 @@ public class Inventory
         if (index < HotbarSize) Selected = index;
         else Swap(index, Selected);
         string key = HeldKey;
+        if (key == CanKey) return "물뿌리개를 들었어요. 자라는 꽃 앞에서 E로 물을 줘요";
         if (key.StartsWith("mat:")) return $"{Name(key)}을(를) 들었어요. 업그레이드(U)에 쓰는 재료예요";
         if (key.StartsWith("fert:")) return $"{Name(key)}을(를) 들었어요. 자라는 꽃 앞에서 F로 줘요";
         return $"{Name(key)}을(를) 들었어요. 빈 밭 앞에서 E로 심어요";
@@ -64,6 +67,7 @@ public class Inventory
 
     public int Count(string key)
     {
+        if (key == CanKey) return 1; // 물뿌리개는 늘 가지고 있다
         if (key.StartsWith("seed:")) { var p = PlantOf(key); return p ? gm.SeedCount(p) : 0; }
         if (key.StartsWith("mat:")) return gm.MaterialCount(key.Substring(4));
         if (key.StartsWith("fert:")) return gm.FertilizerCount(int.Parse(key.Substring(5)));
@@ -86,6 +90,7 @@ public class Inventory
 
     IEnumerable<string> AllKeys()
     {
+        yield return CanKey; // 새 판이면 1번 칸
         foreach (var p in gm.Plants) yield return SeedKey(p);
         foreach (var m in Progression.Materials) yield return MaterialKey(m.id);
         for (int g = 1; g <= Progression.FertilizerGrades; g++) yield return FertilizerKey(g);
@@ -97,6 +102,7 @@ public class Inventory
 
     public string Name(string key)
     {
+        if (key == CanKey) return "물뿌리개";
         if (key.StartsWith("seed:")) { var p = PlantOf(key); return p ? $"{p.displayName} 씨앗" : "씨앗"; }
         if (key.StartsWith("mat:")) return Progression.GetMaterial(key.Substring(4)).name;
         if (key.StartsWith("fert:")) return $"비료 {key.Substring(5)}단계";
@@ -106,6 +112,7 @@ public class Inventory
     // 그림: 씨앗은 그 식물 아이콘, 비료는 Icons/fertilizer, 재료는 Icons/mat_<id>(없으면 null → 색 동그라미)
     public Sprite Icon(string key)
     {
+        if (key == CanKey) return ArtLibrary.Ui("Icons/wateringcan");
         if (key.StartsWith("seed:")) { var p = PlantOf(key); return p ? ArtLibrary.PlantIcon(p) : null; }
         if (key.StartsWith("mat:")) return ArtLibrary.Ui("Icons/mat_" + key.Substring(4));
         if (key.StartsWith("fert:")) return ArtLibrary.Ui("Icons/fertilizer");
@@ -114,6 +121,7 @@ public class Inventory
 
     public Color Tint(string key)
     {
+        if (key == CanKey) return new Color(0.43f, 0.78f, 0.94f);
         if (key.StartsWith("seed:")) { var p = PlantOf(key); return p ? p.color : Color.white; }
         switch (key)
         {

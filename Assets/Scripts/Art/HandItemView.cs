@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // 로봇 손에 든 것: 물뿌리개(임시 상자 모양), 씨앗, 재료·비료(색 상자). 그림·모델이 생기면 Build...() 만 바꾸면 된다.
-//   무엇을 드나: 자라는 꽃 앞이나 호수 옆이면 물뿌리개, 그 밖에는 고른 아래 칸(1~9)의 물건, 빈 칸이면 물뿌리개.
+//   무엇을 드나: 고른 아래 칸(1~9)의 물건 그대로. 물뿌리개도 칸에 든 물건이다. 빈 칸이면 빈 손.
 //   3인칭: 로봇 그림이 늘 카메라를 보니까 손에 든 것도 화면 기준 로봇 오른손 옆에 딱 붙여 둔다(걸을 때 통통 튀는 것도 같이).
 //   1인칭: 화면 오른쪽 아래에 손에 든 것처럼 보인다.
 // 물을 주면 물뿌리개를 앞으로 기울였다 돌아오고, 물이 없으면 회색이 된다.
@@ -10,7 +10,7 @@ using UnityEngine;
 public class HandItemView : MonoBehaviour
 {
     // Hud 가 물뿌리개 남은 횟수를 띄울지 정할 때 쓴다
-    public static bool HoldingCan { get; private set; } = true;
+    public static bool HoldingCan { get; private set; }
 
     static readonly Color Full = new Color(0.43f, 0.78f, 0.94f);
     static readonly Color Empty = new Color(0.62f, 0.62f, 0.62f);
@@ -93,15 +93,8 @@ public class HandItemView : MonoBehaviour
 
     public void Pour() => pourTimer = PourSeconds;
 
-    // 무엇을 들까
-    bool WantsCan(GameManager gm)
-    {
-        if (pourTimer > 0) return true;
-        var spot = player ? player.NearestSpot : null;
-        bool growing = spot && !spot.IsEmpty && !spot.IsRotten && !spot.IsBloomed;
-        if (growing || (player && player.NearLake)) return true;
-        return gm.Inv.HeldKey == "";
-    }
+    // 물뿌리개를 들고 있나(물 주는 동안에도)
+    bool WantsCan(GameManager gm) => pourTimer > 0 || gm.Inv.HeldCan;
 
     void LateUpdate()
     {
@@ -112,7 +105,7 @@ public class HandItemView : MonoBehaviour
 
         HoldingCan = WantsCan(gm);
         bool holdSeed = !HoldingCan && gm.Inv.HeldPlant;
-        bool holdBlock = !HoldingCan && !holdSeed;
+        bool holdBlock = !HoldingCan && !holdSeed && gm.Inv.HeldKey != ""; // 빈 손이면 아무것도 안 든다
         if (can.gameObject.activeSelf != HoldingCan) can.gameObject.SetActive(HoldingCan);
         if (seed.gameObject.activeSelf != holdSeed) seed.gameObject.SetActive(holdSeed);
         if (block.gameObject.activeSelf != holdBlock) block.gameObject.SetActive(holdBlock);
@@ -192,6 +185,6 @@ public class HandItemView : MonoBehaviour
         if (can) Destroy(can.gameObject);
         if (seed) Destroy(seed.gameObject);
         if (block) Destroy(block.gameObject);
-        HoldingCan = true;
+        HoldingCan = false;
     }
 }

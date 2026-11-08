@@ -129,10 +129,20 @@ public class PlantSpot : MonoBehaviour
     void Start() => Refresh();
 
     // 보이는 모습 고르기: 3D 모델(stagePrefabs) → 땅에 심은 GPT 그림(화분을 잘라 낸 _ground) → 임시 도형 순서
+    // 심은 칸 표시: 씨앗 단계는 그림이 작아 빈 흙처럼 보이니, 심은 칸에는 젖은 흙 둔덕을 올린다
+    static readonly Color MoundColor = new Color(0.27f, 0.17f, 0.1f);
+    GameObject mound;
+
     void Refresh()
     {
         if (visual) Destroy(visual.gameObject);
         shownStage = Plant ? Stage : -1;
+        if (!mound)
+        {
+            mound = PrototypeBootstrap.Part(transform, PrimitiveType.Sphere, Vector3.up * SoilTop, new Vector3(1.1f, 0.22f, 1.1f), MoundColor);
+            mound.name = "Mound";
+        }
+        mound.SetActive(Plant != null);
         if (Plant == null) return;
 
         var prefab = !IsRotten && Plant.stagePrefabs != null && Plant.stagePrefabs.Length > Stage ? Plant.stagePrefabs[Stage] : null;
