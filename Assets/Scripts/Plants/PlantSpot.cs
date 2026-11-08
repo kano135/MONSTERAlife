@@ -154,7 +154,10 @@ public class PlantSpot : MonoBehaviour
         }
         else if (sprite)
         {
-            visual = Billboard.Create(transform, sprite, SpriteWidth, IsRotten ? RottenTint : Color.white).transform;
+            // 폭 SpriteWidth 기준으로 맞추되, 길쭉한 그림(해바라기)은 높이 MaxSpriteHeight 를 넘지 않게
+            float aspect = sprite.bounds.size.y / sprite.bounds.size.x;
+            float width = Mathf.Min(SpriteWidth, MaxSpriteHeight / aspect);
+            visual = Billboard.Create(transform, sprite, width, IsRotten ? RottenTint : Color.white).transform;
             visual.localPosition = Vector3.up * (SoilTop - 0.14f); // 그림 밑에 남은 화분 테두리를 흙 속에 묻는다
         }
         else
@@ -167,6 +170,7 @@ public class PlantSpot : MonoBehaviour
     }
 
     const float SpriteWidth = 1.5f;
+    const float MaxSpriteHeight = 1.3f; // 식물 그림 최대 높이(m). 로봇 키 1.7
     static readonly Color RottenTint = new Color(0.55f, 0.4f, 0.3f);
 }
 
