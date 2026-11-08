@@ -27,6 +27,7 @@ public static class PrototypeBootstrap
         var spots = BuildGreenhouse();
         BuildSendStation();
         Lake.Build(LakeCenter, LakeRadius);
+        Cliff.Build(); // 맵 왼쪽 끝 절벽·폭포·동굴
         var nodes = BuildResources();
 
         var cam = Camera.main ? Camera.main.gameObject : new GameObject("Main Camera", typeof(Camera)) { tag = "MainCamera" };
@@ -239,7 +240,7 @@ public static class PrototypeBootstrap
             pos = new Vector3((float)(rng.NextDouble() * 2 - 1) * lim, 0, (float)(rng.NextDouble() * 2 - 1) * lim);
             var fromBase = pos - BaseCenter;
             fromBase.y = 0;
-            if (fromBase.magnitude < FenceRadius + radius + 2f || Lake.Overlaps(pos, radius + 1.5f)) continue;
+            if (fromBase.magnitude < FenceRadius + radius + 2f || Lake.Overlaps(pos, radius + 1.5f) || Cliff.Blocks(pos, radius + 1.5f)) continue;
             bool clear = true;
             foreach (var t in taken)
                 if ((t.pos - pos).sqrMagnitude < Sq(t.radius + radius + gap)) { clear = false; break; }
