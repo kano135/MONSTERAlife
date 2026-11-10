@@ -706,7 +706,9 @@ public class Hud : MonoBehaviour
     {
         dayText.text = $"{gm.Day}일차 / {Progression.TotalDays}";
         timeText.text = Progression.ClockText(gm.Minute);
-        if (Progression.IsSendDay(gm.Day))
+        if (gm.IsTestSendDay)
+            sendText.text = "시험 발송 가능! (꽃 1송이 → 도끼)";
+        else if (Progression.IsSendDay(gm.Day))
             sendText.text = gm.LastMissionDay == gm.Day ? "오늘 미션 완료!" : "오늘은 지구 발송일!";
         else
         {
@@ -749,7 +751,7 @@ public class Hud : MonoBehaviour
         if (player.NearStation)
         {
             promptTitle.text = "지구 송신기";
-            bool sendDay = Progression.IsSendDay(gm.Day) && gm.LastMissionDay != gm.Day;
+            bool sendDay = (Progression.IsSendDay(gm.Day) && gm.LastMissionDay != gm.Day) || gm.IsTestSendDay;
             // 보낼 때 미션 기준선을 같이 보여 준다(평소에는 Esc 메뉴 '미션' 탭)
             int sendAt = Progression.NextSendDay(gm.Day) + (gm.LastMissionDay == gm.Day ? Progression.SendEveryDays : 0);
             int mission = Progression.MissionNumber(sendAt), pts = gm.BagPoints;
@@ -760,6 +762,8 @@ public class Hud : MonoBehaviour
                 $"{Line(Progression.SurviveLine(mission), "생존 → 연료통")}\n" +
                 $"{Line(Progression.UpgradeLine(mission), "업그레이드 → 도구·설계키트")}\n" +
                 $"{Line(Progression.FinalLine(mission), "최종 → 성적 +")}";
+            if (gm.IsTestSendDay)
+                promptBody.text = $"시험 발송!\n꽃을 1송이 이상 보내면 지구가 도끼를 보내 줘요.\n가방 {gm.FlowerBag.Count}송이\n(미션 판정은 없어요)";
             promptKey.text = "E";
             promptAction.text = sendDay ? "꽃을 지구로 보내기" : "아직 보낼 수 없어요";
         }

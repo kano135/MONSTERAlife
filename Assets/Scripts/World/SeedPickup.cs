@@ -17,6 +17,7 @@ public class SeedPickup : MonoBehaviour
     {
         var gm = GameManager.Instance;
         gm.AddSeed(plant, 1);
+        gm.CountSeedsPicked++;
         Destroy(gameObject);
         return $"{plant.displayName} 씨앗을 주웠어요";
     }

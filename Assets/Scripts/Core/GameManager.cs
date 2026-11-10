@@ -47,6 +47,13 @@ public class GameManager : MonoBehaviour
     public bool StoryChildFlower;
     public int StoryFinal;
 
+    // 첫날 할 일(Objectives)용 횟수: 심기·물 주기·길 씨앗 줍기·작은 돌 줍기, 원주민 마을에 가 봤나, 받은 보상
+    public int CountPlanted, CountWatered, CountSeedsPicked, CountPebbles;
+    public bool VisitedVillage;
+    public readonly HashSet<int> ObjectivesDone = new HashSet<int>();
+    public bool TestSendDone;
+    public bool IsTestSendDay => !TestSendDone && Day >= Progression.TestSendDay && Day < Progression.SendEveryDays;
+
     // 가진 물건의 칸 순서(아래 칸 1~9 + 가방). 손에 든 씨앗으로 심는다.
     public Inventory Inv { get; private set; }
 
@@ -86,6 +93,7 @@ public class GameManager : MonoBehaviour
 
     // 비료 1~5단계 가진 개수
     public int FertilizerCount(int grade) => fertilizer[grade - 1];
+    public void AddFertilizer(int grade, int n) => fertilizer[grade - 1] += n;
 
     // 밭에서 F: 손에 든 비료가 있으면 그 단계, 아니면 가진 비료 중 가장 높은 단계를 준다
     public string Fertilize(PlantSpot spot)
@@ -110,6 +118,7 @@ public class GameManager : MonoBehaviour
             if (!p || SeedCount(p) <= 0) return "씨앗을 손에 들어야 심어요 (숫자 키 1~9 · Esc 가방)";
             seeds[p.id]--;
             spot.PlantSeed(p);
+            CountPlanted++;
             return $"{p.displayName} 씨앗을 심었어요";
         }
         if (spot.IsRotten)
@@ -135,6 +144,7 @@ public class GameManager : MonoBehaviour
             : "물을 주려면 물뿌리개를 손에 들어요 (숫자 키 · Esc 가방)";
         if (CanWater <= 0) return "물뿌리개가 비었어요! 기지 남서쪽 호수에서 E로 채우세요";
         CanWater--;
+        CountWatered++;
         Poured?.Invoke();
         if (spot.AddWater(Progression.WaterPerPour)) return $"물을 너무 많이 줘서 꽃이 썩었어요… (물뿌리개 {CanWater}/{CanCapacity})";
         return $"물을 줬어요 (수분 {spot.Water:P0} · 물뿌리개 {CanWater}/{CanCapacity})" + (CanWater == 0 ? "\n물이 떨어졌어요. 호수에서 채우세요" : "");
@@ -203,12 +213,24 @@ public class GameManager : MonoBehaviour
         if (node.Amount <= 0) return "다 캤어요. 내일 다시 생겨요";
         node.Take();
         AddMaterial(mat.id, 1);
+        if (!node.needsTool) CountPebbles++;
         return $"{mat.name} {(node.needsTool ? "+1" : "1개 주웠어요")} (가진 것 {MaterialCount(mat.id)})";
     }
 
     // 송신기에서 E: 발송일(5일마다)에 한 번, 가방의 꽃을 전부 보내 미션을 판정한다(기준선은 Progression).
     public string SendToEarth()
     {
+        if (IsTestSendDay)
+        {
+            if (FlowerBag.Count == 0) return "시험 발송: 꽃을 한 송이 이상 수확해서 가져와요";
+            StoryDirector.OnFlowersSent(this, FlowerBag.Count);
+            FlowersSent += FlowerBag.Count;
+            FlowerBag.Clear();
+            TestSendDone = true;
+            var tool = Progression.GetTool(Progression.TestSendTool);
+            Tools.Add(tool.id);
+            return $"시험 발송 성공! 지구가 '{tool.name}'을(를) 보내 줬어요.\n이제 나무를 캘 수 있어요(나무 앞에서 E)";
+        }
         if (!Progression.IsSendDay(Day))
             return $"지구로는 {Progression.SendEveryDays}일마다 보낼 수 있어요. 다음 발송일: {Progression.NextSendDay(Day)}일차";
         if (LastMissionDay == Day) return "오늘 미션은 이미 끝났어요";
@@ -388,6 +410,10 @@ public class GameManager : MonoBehaviour
             storySeen = StorySeen.ToList(),
             storyChildFlower = StoryChildFlower,
             storyFinal = StoryFinal,
+            counts = new[] { CountPlanted, CountWatered, CountSeedsPicked, CountPebbles },
+            visitedVillage = VisitedVillage,
+            objectivesDone = ObjectivesDone.ToList(),
+            testSendDone = TestSendDone,
             hasPosition = true,
             position = Player.position,
             yaw = Player.eulerAngles.y,
@@ -465,6 +491,10 @@ public class GameManager : MonoBehaviour
         if (save.storySeen != null) StorySeen.UnionWith(save.storySeen);
         StoryChildFlower = save.storyChildFlower;
         StoryFinal = save.storyFinal;
+        if (save.counts != null && save.counts.Length == 4) { CountPlanted = save.counts[0]; CountWatered = save.counts[1]; CountSeedsPicked = save.counts[2]; CountPebbles = save.counts[3]; }
+        VisitedVillage = save.visitedVillage;
+        if (save.objectivesDone != null) ObjectivesDone.UnionWith(save.objectivesDone);
+        TestSendDone = save.testSendDone || Day >= Progression.SendEveryDays; // 옛 저장(이미 5일차 넘음)이면 시험 발송은 건너뜀
         if (save.hasPosition)
         {
             var cc = Player.GetComponent<CharacterController>();
@@ -499,6 +529,9 @@ public class GameManager : MonoBehaviour
         public int storyTrust, storyFinal;
         public List<int> storySeen = new List<int>();
         public bool storyChildFlower;
+        public int[] counts;
+        public bool visitedVillage, testSendDone;
+        public List<int> objectivesDone = new List<int>();
         // 로봇 자리: 이어 하면 저장한 그 자리에서 시작(새 게임은 기지 안)
         public bool hasPosition;
         public Vector3 position;

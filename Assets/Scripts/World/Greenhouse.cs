@@ -30,7 +30,8 @@ public class Greenhouse : MonoBehaviour
     readonly float[] values = (float[])Ambient.Clone();
     Bounds area;
 
-    public bool Contains(Vector3 p) => area.Contains(new Vector3(p.x, area.center.y, p.z));
+    // 높이도 본다: 비닐하우스 바로 아래 땅속에 기지 안쪽 방이 있어서, 거기서 비닐하우스 안으로 잘못 보지 않게
+    public bool Contains(Vector3 p) => area.Contains(p);
 
     void Update()
     {

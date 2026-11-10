@@ -30,6 +30,9 @@ public class StoryDirector : MonoBehaviour
 
     static readonly Beat[] Beats =
     {
+        new Beat { day = 2, accent = Earth, title = "📡 지구에서 온 통신",
+            body = "\"첫 수확을 시험 발송하라. 성공하면 채집 도구(도끼)를 보낸다.\"\n\n(꽃을 한 송이 수확해서 기지 송신기에서 E)",
+            when = gm => !gm.TestSendDone },
         new Beat { day = 3, accent = Planet, title = "누군가 지켜보고 있다",
             body = "들판 끝에서 무언가가 로봇을 지켜보고 있어요.\n이 행성에는… 누군가 살고 있었어요.\n(동쪽에 원주민 마을이 있어요)" },
         new Beat { day = 5, accent = Planet, title = "첫 발송 날",

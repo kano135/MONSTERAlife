@@ -28,6 +28,11 @@ public static class Progression
     // 미션 n(1~20)의 생존선 = 3 + n. 업그레이드선은 2배, 최종선은 3배.
     public const float MissionFuel = 50f; // 5일치
 
+    // 시험 발송: 2일차부터 첫 발송일(5일차) 전까지 한 번, 꽃 한 송이 이상 보내면 도끼(TestSendTool)를 바로 받는다.
+    // 초반 5일 동안 도구가 하나도 없던 공백을 줄인다. 미션 판정은 없다.
+    public const int TestSendDay = 2;
+    public const string TestSendTool = "cutter";
+
     // ★ 테스트용: 물건 칸에 무제한 연료통(들고 E → 연료 MissionFuel 만큼). 정식 게임에서는 false 로 끈다.
     public const bool TestInfiniteFuel = true;
     public static int MissionNumber(int day) => day / SendEveryDays;

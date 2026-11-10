@@ -45,6 +45,7 @@ public static class PrototypeBootstrap
         Eyelids.Build();
         StoryUI.Build();
         systems.AddComponent<StoryDirector>(); // 날짜별 이야기·선택·결말
+        systems.AddComponent<Objectives>();    // 첫날 할 일(오른쪽 위)
 #if UNITY_EDITOR
         systems.AddComponent<DevScreenshots>();
 #endif
