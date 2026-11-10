@@ -147,7 +147,8 @@ public class PlantSpot : MonoBehaviour
         shownStage = Plant ? Stage : -1;
         if (!mound)
         {
-            mound = PrototypeBootstrap.Part(transform, PrimitiveType.Sphere, Vector3.up * SoilTop, new Vector3(1.1f, 0.22f, 1.1f), MoundColor);
+            // 납작하게: 흙 위로 2cm 만 올라와 꽃 아래쪽 잎을 가리지 않는다
+            mound = PrototypeBootstrap.Part(transform, PrimitiveType.Sphere, Vector3.up * (SoilTop - 0.05f), new Vector3(1.1f, 0.14f, 1.1f), MoundColor);
             mound.name = "Mound";
         }
         mound.SetActive(Plant != null);
@@ -166,7 +167,8 @@ public class PlantSpot : MonoBehaviour
             float aspect = sprite.bounds.size.y / sprite.bounds.size.x;
             float width = Mathf.Min(SpriteWidth, MaxSpriteHeight / aspect);
             visual = Billboard.Create(transform, sprite, width, IsRotten ? RottenTint : Color.white).transform;
-            visual.localPosition = Vector3.up * (SoilTop - 0.14f); // 그림 밑에 남은 화분 테두리를 흙 속에 묻는다
+            // 그림 맨 아래 얇은 화분 테두리(그림 높이의 5% 정도)만 흙 속에 묻는다. 잎은 흙 위로 다 보이게(자라난 모습).
+            visual.localPosition = Vector3.up * (SoilTop - width * aspect * PotRimFraction);
         }
         else
         {
@@ -178,6 +180,7 @@ public class PlantSpot : MonoBehaviour
     }
 
     const float SpriteWidth = 1.5f;
+    const float PotRimFraction = 0.05f;  // 그림 높이 중 흙에 묻는 비율
     const float MaxSpriteHeight = 1.3f; // 식물 그림 최대 높이(m). 로봇 키 1.7
     static readonly Color RottenTint = new Color(0.55f, 0.4f, 0.3f);
 }

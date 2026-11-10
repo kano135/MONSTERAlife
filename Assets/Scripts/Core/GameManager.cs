@@ -388,6 +388,9 @@ public class GameManager : MonoBehaviour
             storySeen = StorySeen.ToList(),
             storyChildFlower = StoryChildFlower,
             storyFinal = StoryFinal,
+            hasPosition = true,
+            position = Player.position,
+            yaw = Player.eulerAngles.y,
             heldSlot = Inv.Selected,
             canLevel = CanLevel,
             canWater = CanWater,
@@ -462,6 +465,13 @@ public class GameManager : MonoBehaviour
         if (save.storySeen != null) StorySeen.UnionWith(save.storySeen);
         StoryChildFlower = save.storyChildFlower;
         StoryFinal = save.storyFinal;
+        if (save.hasPosition)
+        {
+            var cc = Player.GetComponent<CharacterController>();
+            cc.enabled = false; // 순간이동하려면 잠깐 꺼야 한다
+            Player.SetPositionAndRotation(save.position + Vector3.up * 0.1f, Quaternion.Euler(0, save.yaw, 0));
+            cc.enabled = true;
+        }
     }
 
     [Serializable]
@@ -489,6 +499,10 @@ public class GameManager : MonoBehaviour
         public int storyTrust, storyFinal;
         public List<int> storySeen = new List<int>();
         public bool storyChildFlower;
+        // 로봇 자리: 이어 하면 저장한 그 자리에서 시작(새 게임은 기지 안)
+        public bool hasPosition;
+        public Vector3 position;
+        public float yaw;
         public int heldSlot;
         public float fuel, minute;
         public List<SpotSave> spots = new List<SpotSave>();
