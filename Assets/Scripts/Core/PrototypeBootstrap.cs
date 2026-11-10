@@ -24,6 +24,9 @@ public static class PrototypeBootstrap
         DayNight.Build(GroundView.Build()); // 시간대에 따라 하늘·땅·빛 색이 바뀐다
         var home = BuildBase();
         var player = BuildRobot(home);
+        // 시작은 기지 안 방에서(문으로 나가면 계단 꼭대기). 충전기(home)는 그대로 밖에 있다.
+        player.position = BaseInterior.Instance.StartPosition;
+        player.rotation = Quaternion.Euler(0, BaseInterior.StartYaw, 0);
         var spots = BuildGreenhouse();
         BuildSendStation();
         Lake.Build(LakeCenter, LakeRadius);

@@ -129,6 +129,10 @@ public class BaseInterior : MonoBehaviour
     // ── 드나들기 ──
     public void Enter(Transform player) { if (!busy) StartCoroutine(Move(player, insideDoor + Vector3.up * 1f, -90f)); }
 
+    // 게임을 시작하면 로봇은 기지 안 방에서 깨어난다(방 가운데쯤, 안쪽 문을 바라보며)
+    public Vector3 StartPosition => InteriorOrigin + new Vector3(RoomX / 4f, 1f, 0);
+    public const float StartYaw = 90f; // +x = 안쪽 문 쪽
+
     public void Exit(Transform player)
     {
         if (busy) return;
