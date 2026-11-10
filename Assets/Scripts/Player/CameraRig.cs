@@ -2,8 +2,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 // 카메라: 1인칭(기본) / 3인칭. V 키나 설정 창(Esc)에서 바꾸고, 고른 시점·마우스 감도는 다음에도 기억한다.
-//   1인칭: 마우스로 둘러보기(커서 숨김)
-//   3인칭: 마우스 오른쪽 드래그로 돌리기, 휠로 거리
+//   1인칭·3인칭 모두 마우스로 둘러보기(커서 숨김). 3인칭은 휠로 거리.
+//   마우스 커서는 Esc 메뉴를 열었을 때만 나온다(Hud.CursorFree).
 // 카메라가 먼저 자리를 잡아야 카메라를 보는 그림(Billboard)·손에 든 것이 한 프레임 늦게 따라오며 떨리지 않는다
 [DefaultExecutionOrder(-100)]
 public class CameraRig : MonoBehaviour
@@ -58,13 +58,13 @@ public class CameraRig : MonoBehaviour
 
         if (kb != null && kb.vKey.wasPressedThisFrame && !ui) SetFirstPerson(!FirstPerson);
 
-        bool locked = FirstPerson && !ui;
-        Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
+        bool locked = !Hud.CursorFree;
+        if (Cursor.lockState != (locked ? CursorLockMode.Locked : CursorLockMode.None)) Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
         Cursor.visible = !locked;
 
         if (mouse != null && !ui)
         {
-            if (FirstPerson || mouse.rightButton.isPressed)
+            if (locked)
             {
                 var delta = mouse.delta.ReadValue();
                 yaw += delta.x * Sensitivity;

@@ -64,8 +64,10 @@ public class Hud : MonoBehaviour
     Text[] ghText;
     Text promptKey, viewText, sensitivityText;
 
-    // 창이 열려 있으면 로봇은 멈추고 마우스 커서가 나온다
+    // 창이 열려 있으면 로봇·카메라가 멈춘다
     public static bool AnyPanelOpen { get; private set; }
+    // 마우스 커서는 Esc 메뉴가 열렸을 때만 나온다(시작 화면·엔딩 화면은 버튼을 눌러야 해서 예외)
+    public static bool CursorFree { get; private set; }
     Image[] bookIcon;
     Text[] bookText;
     Text upgradeTools;
@@ -601,6 +603,7 @@ public class Hud : MonoBehaviour
         if (!gm || !root) return;
         HandleKeys();
         AnyPanelOpen = TitleScreen.Showing || gm.Sleeping || gm.IsGameOver || book.activeSelf || upgrade.activeSelf || settings.activeSelf || intro.activeSelf;
+        CursorFree = settings.activeSelf || TitleScreen.Showing || gm.IsGameOver;
         crosshair.SetActive(CameraRig.FirstPerson && !AnyPanelOpen);
         if (settings.activeSelf)
         {
