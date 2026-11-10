@@ -42,7 +42,7 @@ public class SeedSpawner : MonoBehaviour
             float angle = Random.value * Mathf.PI * 2;
             float dist = Random.Range(minRadius, maxRadius);
             pos = new Vector3(Mathf.Cos(angle) * dist, 0f, Mathf.Sin(angle) * dist);
-        } while ((Lake.Overlaps(pos, 1f) || Cliff.Blocks(pos, 1f) || !OnGround(ref pos)) && ++tries < 10);
+        } while ((Lake.Overlaps(pos, 1f) || Cliff.Blocks(pos, 1f) || Village.Blocks(pos, 1f) || !OnGround(ref pos)) && ++tries < 10);
 
         GameObject seed;
         var art = ArtLibrary.World("Props/seed");

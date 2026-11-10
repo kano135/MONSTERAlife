@@ -28,6 +28,7 @@ public static class PrototypeBootstrap
         BuildSendStation();
         Lake.Build(LakeCenter, LakeRadius);
         Cliff.Build(); // 맵 왼쪽 끝 절벽·폭포·동굴
+        Village.Build(); // 동쪽 원주민 마을(임시: 타원형)
         var nodes = BuildResources();
 
         var cam = Camera.main ? Camera.main.gameObject : new GameObject("Main Camera", typeof(Camera)) { tag = "MainCamera" };
@@ -39,6 +40,8 @@ public static class PrototypeBootstrap
         systems.AddComponent<Hud>().player = player.GetComponent<PlayerController>();
         systems.AddComponent<TitleScreen>();
         Eyelids.Build();
+        StoryUI.Build();
+        systems.AddComponent<StoryDirector>(); // 날짜별 이야기·선택·결말
 #if UNITY_EDITOR
         systems.AddComponent<DevScreenshots>();
 #endif
@@ -252,7 +255,7 @@ public static class PrototypeBootstrap
             pos = new Vector3((float)(rng.NextDouble() * 2 - 1) * lim, 0, (float)(rng.NextDouble() * 2 - 1) * lim);
             var fromBase = pos - BaseCenter;
             fromBase.y = 0;
-            if (fromBase.magnitude < FenceRadius + radius + 2f || Lake.Overlaps(pos, radius + 1.5f) || Cliff.Blocks(pos, radius + 1.5f)) continue;
+            if (fromBase.magnitude < FenceRadius + radius + 2f || Lake.Overlaps(pos, radius + 1.5f) || Cliff.Blocks(pos, radius + 1.5f) || Village.Blocks(pos, radius + 1.5f)) continue;
             bool clear = true;
             foreach (var t in taken)
                 if ((t.pos - pos).sqrMagnitude < Sq(t.radius + radius + gap)) { clear = false; break; }

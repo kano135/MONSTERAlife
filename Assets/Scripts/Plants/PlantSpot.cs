@@ -62,6 +62,14 @@ public class PlantSpot : MonoBehaviour
         return false;
     }
 
+    // 이야기: 누군가 밭을 망쳤다
+    public void Rot()
+    {
+        if (Plant == null) return;
+        IsRotten = true;
+        Refresh();
+    }
+
     public void Clear()
     {
         Plant = null;

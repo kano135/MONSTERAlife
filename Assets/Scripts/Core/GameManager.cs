@@ -16,7 +16,8 @@ public class GameManager : MonoBehaviour
     public const int HarvestsForFullHabitability = 100;
 
     // Sleep = 연료가 바닥나 행성에서 잠듦(중간 종료). 나머지는 100일 뒤 점수로 정해진다.
-    public enum Ending { None, Sleep, Lava, OtherPlanet, Migration }
+    // Sleep = 연료가 바닥나 잠듦. 나머지는 이야기(StoryDirector) 95일차 마지막 선택으로 정해진다.
+    public enum Ending { None, Sleep, Together, Conquest, Messenger }
 
     public List<PlantData> Plants { get; private set; }
     public PlantSpot[] Spots { get; private set; }
@@ -40,6 +41,12 @@ public class GameManager : MonoBehaviour
     public Ending Result { get; private set; }
     public bool IsGameOver => Result != Ending.None;
     public float Habitability => Mathf.Clamp01(HarvestCount / (float)HarvestsForFullHabitability);
+    // 이야기 상태(StoryDirector): 원주민 신뢰(-100~100, 화면에 안 보임), 이미 본 날, 아이 꽃을 받았나, 마지막 선택(1 정복·2 메신저·3 함께 잠들기)
+    public int StoryTrust;
+    public readonly HashSet<int> StorySeen = new HashSet<int>();
+    public bool StoryChildFlower;
+    public int StoryFinal;
+
     // 가진 물건의 칸 순서(아래 칸 1~9 + 가방). 손에 든 씨앗으로 심는다.
     public Inventory Inv { get; private set; }
 
@@ -133,6 +140,33 @@ public class GameManager : MonoBehaviour
         return $"물을 줬어요 (수분 {spot.Water:P0} · 물뿌리개 {CanWater}/{CanCapacity})" + (CanWater == 0 ? "\n물이 떨어졌어요. 호수에서 채우세요" : "");
     }
 
+    public void AddFuel(float amount) => Fuel = Mathf.Min(Progression.MaxFuel, Fuel + amount);
+
+    // 가방에서 가장 귀한 꽃 한 송이를 뺀다(이야기: 아픈 원주민에게 주기)
+    public void RemoveRarestFlower()
+    {
+        if (FlowerBag.Count == 0) return;
+        var rarest = FlowerBag.OrderByDescending(f => Progression.FlowerPoints(Plants.Find(p => p.id == f.id), f.variant)).First();
+        FlowerBag.Remove(rarest);
+    }
+
+    // 이야기로 바로 끝내기(함께 잠들기): 눈이 감기고 엔딩 화면
+    public void EndStory(Ending ending)
+    {
+        if (IsGameOver) return;
+        StartCoroutine(EndStoryRoutine(ending));
+    }
+
+    System.Collections.IEnumerator EndStoryRoutine(Ending ending)
+    {
+        Sleeping = true;
+        var lids = Eyelids.Instance;
+        if (lids) yield return lids.Close(2.5f, "송신기를 껐어요…\nZzz…");
+        Result = ending;
+        if (lids) { yield return new WaitForSecondsRealtime(1.5f); lids.Hide(); }
+        Sleeping = false;
+    }
+
     // 테스트용 연료통을 들고 E: 연료 MissionFuel(5일치)만큼, 최대치까지
     public string UseFuelCan()
     {
@@ -182,6 +216,7 @@ public class GameManager : MonoBehaviour
 
         int mission = Progression.MissionNumber(Day);
         int points = BagPoints;
+        StoryDirector.OnFlowersSent(this, FlowerBag.Count);
         FlowersSent += FlowerBag.Count;
         FlowerBag.Clear();
         LastMissionDay = Day;
@@ -298,7 +333,7 @@ public class GameManager : MonoBehaviour
         if (Day > Progression.TotalDays)
         {
             Day = Progression.TotalDays;
-            Result = Score >= Progression.GoodScore ? Ending.Migration : Score >= Progression.OkScore ? Ending.OtherPlanet : Ending.Lava;
+            Result = StoryFinal == 2 ? Ending.Messenger : Ending.Conquest; // 마지막 선택(메신저가 아니면 정복)
             return "100일이 지났어요. 지구로 돌아갑니다";
         }
         Save();
@@ -349,6 +384,10 @@ public class GameManager : MonoBehaviour
             rewardsGiven = rewardsGiven,
             fertilizer = fertilizer.ToArray(),
             inventory = Inv.ToSave(),
+            storyTrust = StoryTrust,
+            storySeen = StorySeen.ToList(),
+            storyChildFlower = StoryChildFlower,
+            storyFinal = StoryFinal,
             heldSlot = Inv.Selected,
             canLevel = CanLevel,
             canWater = CanWater,
@@ -419,6 +458,10 @@ public class GameManager : MonoBehaviour
                 Nodes[i].Amount = Mathf.Clamp(save.nodeAmounts[i], 0, Nodes[i].maxAmount);
         if (Greenhouse.Instance) Greenhouse.Instance.FromSave(save.greenhouse);
         Inv.FromSave(save.inventory, save.heldSlot); // 옛 저장(칸 순서 없음)이면 가진 것부터 차례로 채운다
+        StoryTrust = save.storyTrust;
+        if (save.storySeen != null) StorySeen.UnionWith(save.storySeen);
+        StoryChildFlower = save.storyChildFlower;
+        StoryFinal = save.storyFinal;
     }
 
     [Serializable]
@@ -443,6 +486,9 @@ public class GameManager : MonoBehaviour
         public int canLevel, canWater, canTokens;
         public int[] fertilizer;
         public List<string> inventory;
+        public int storyTrust, storyFinal;
+        public List<int> storySeen = new List<int>();
+        public bool storyChildFlower;
         public int heldSlot;
         public float fuel, minute;
         public List<SpotSave> spots = new List<SpotSave>();

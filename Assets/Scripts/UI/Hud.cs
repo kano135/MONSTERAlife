@@ -24,13 +24,13 @@ public class Hud : MonoBehaviour
     static readonly (GameManager.Ending ending, string image, string title, string text, Color bg)[] Endings =
     {
         (GameManager.Ending.Sleep, "Endings/ending_sleep", "잠드는 엔딩",
-            "15일 동안 미션을 넘지 못해 연료가 바닥났어요.\n로봇은 이 행성에서 조용히 잠듭니다.", new Color32(58, 48, 96, 255)),
-        (GameManager.Ending.Lava, "Endings/ending_lava", "용암 엔딩",
-            "행성을 살리지 못했어요.\n로봇은 끓어오르는 용암 속으로 천천히 녹아 사라집니다.", new Color32(120, 40, 30, 255)),
-        (GameManager.Ending.OtherPlanet, "Endings/ending_otherplanet", "다른 행성 엔딩",
-            "그럭저럭 해냈어요.\n로봇은 다시 캡슐에 실려 또 다른 행성으로 보내집니다.", new Color32(52, 92, 150, 255)),
-        (GameManager.Ending.Migration, "Endings/ending_migration", "로봇 이주 엔딩",
-            "행성이 살아났어요!\n지구에서 여러 로봇들이 우주선을 타고 이 행성으로 옮겨 옵니다.", new Color32(70, 150, 90, 255)),
+            "연료가 바닥났어요.\n로봇은 이 행성에서 조용히 잠듭니다.", new Color32(58, 48, 96, 255)),
+        (GameManager.Ending.Together, "Endings/ending_together", "함께 잠들기",
+            "로봇은 송신기를 끄고 원주민 곁에서 잠들었어요.\n원주민들이 잠든 로봇 곁에 꽃을 놓아 주었어요.\n지구는 이 행성을 찾지 못했어요.", new Color32(90, 70, 130, 255)),
+        (GameManager.Ending.Conquest, "Endings/ending_conquest", "정복",
+            "100일째, 지구의 함대가 도착했어요.\n사람들은 새 터전을 얻었고, 원주민들은 터전을 잃었어요.\n로봇의 임무는 '성공'이었어요.", new Color32(120, 40, 30, 255)),
+        (GameManager.Ending.Messenger, "Endings/ending_messenger", "메신저",
+            "로봇은 꽃 대신 원주민의 이야기를 보냈어요.\n지구는 이 행성에 이미 주인이 있다는 걸 알게 되었어요.\n100일째, 지구의 배는 손님으로 찾아왔어요.", new Color32(70, 150, 90, 255)),
     };
 
     GameManager gm;
@@ -602,8 +602,8 @@ public class Hud : MonoBehaviour
     {
         if (!gm || !root) return;
         HandleKeys();
-        AnyPanelOpen = TitleScreen.Showing || gm.Sleeping || gm.IsGameOver || book.activeSelf || upgrade.activeSelf || settings.activeSelf || intro.activeSelf;
-        CursorFree = settings.activeSelf || TitleScreen.Showing || gm.IsGameOver;
+        AnyPanelOpen = TitleScreen.Showing || StoryUI.IsOpen || gm.Sleeping || gm.IsGameOver || book.activeSelf || upgrade.activeSelf || settings.activeSelf || intro.activeSelf;
+        CursorFree = settings.activeSelf || TitleScreen.Showing || StoryUI.IsOpen || gm.IsGameOver;
         crosshair.SetActive(CameraRig.FirstPerson && !AnyPanelOpen);
         if (settings.activeSelf)
         {
@@ -632,7 +632,7 @@ public class Hud : MonoBehaviour
     void HandleKeys()
     {
         var kb = Keyboard.current;
-        if (kb == null || TitleScreen.Showing || gm.Sleeping) return; // 시작 화면·잠자는 중에는 단축키를 안 받는다
+        if (kb == null || TitleScreen.Showing || StoryUI.IsOpen || gm.Sleeping) return; // 시작 화면·잠자는 중에는 단축키를 안 받는다
         if (gm.IsGameOver)
         {
             if (kb.rKey.wasPressedThisFrame) gm.Restart();
