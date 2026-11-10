@@ -8,7 +8,7 @@ public class SeedSpawner : MonoBehaviour
 {
     public int maxSeeds = 60;
     public float respawnSeconds = 20f;
-    public float minRadius = 19f; // 기지 울타리 밖
+    public float baseClearance = 8f; // 기지 울타리(비닐하우스 포함)에서 이만큼 더 떨어진 곳에만 생긴다
     public float maxRadius = GroundView.Size / 2f - 4f;
 
     List<PlantData> plants;
@@ -34,15 +34,18 @@ public class SeedSpawner : MonoBehaviour
     void Spawn()
     {
         var plant = PickWeighted();
-        // 호수 위에는 안 생기게 몇 번 다시 뽑는다
-        Vector3 pos;
-        int tries = 0;
-        do
+        // 기지 울타리 안·근처, 호수·절벽·마을에는 안 생기게 여러 번 다시 뽑는다. 끝내 못 찾으면 이번엔 안 만든다.
+        Vector3 pos = default;
+        bool found = false;
+        float minRadius = PrototypeBootstrap.FenceRadius + baseClearance;
+        for (int tries = 0; tries < 20 && !found; tries++)
         {
             float angle = Random.value * Mathf.PI * 2;
             float dist = Random.Range(minRadius, maxRadius);
-            pos = new Vector3(Mathf.Cos(angle) * dist, 0f, Mathf.Sin(angle) * dist);
-        } while ((Lake.Overlaps(pos, 1f) || Cliff.Blocks(pos, 1f) || Village.Blocks(pos, 1f) || !OnGround(ref pos)) && ++tries < 10);
+            pos = PrototypeBootstrap.BaseCenter + new Vector3(Mathf.Cos(angle) * dist, 0f, Mathf.Sin(angle) * dist);
+            found = !Lake.Overlaps(pos, 1f) && !Cliff.Blocks(pos, 1f) && !Village.Blocks(pos, 1f) && OnGround(ref pos);
+        }
+        if (!found) return;
 
         GameObject seed;
         var art = ArtLibrary.World("Props/seed");
@@ -65,7 +68,7 @@ public class SeedSpawner : MonoBehaviour
         alive.Add(pickup);
     }
 
-    const float SeedHeight = 1.3f;  // 씨앗 그림 높이(m). 예전 0.8
+    const float SeedHeight = 1.0f;  // 씨앗 그림 높이(m). 1.3 → 1.0 (조금 줄임)
     const float SeedBuried = 0.3f;  // 그중 땅에 묻히는 비율
 
     // 위에서 아래로 쏴서 씨앗 자리를 땅 높이에 맞춘다. 바위 위·나무 줄기처럼 땅이 아니면 false → 다시 뽑기.

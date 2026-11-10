@@ -53,8 +53,8 @@ public static class PrototypeBootstrap
     // 기지: 바닥 + 기지 건물 + 충전기(Q로 하루 끝내기, 아침에 여기서 시작) + 둥근 울타리(남쪽이 출입구).
     // 기지 건물은 3D 모델 Resources/Art/Models/base_colony(STELLUX Colony 07) → 그림 Props/base.png → 임시 돔 순서.
     // 충전기 그림은 Props/charger.png 로 넣으면 도형 대신 나온다.
-    static readonly Vector3 BaseCenter = new Vector3(0, 0, 1);
-    const float FenceRadius = 16f;
+    public static readonly Vector3 BaseCenter = new Vector3(0, 0, 1);
+    public const float FenceRadius = 16f;
     // 호수: 남쪽 출입구로 나가서 왼쪽(남서쪽) 울타리 바로 밖
     static readonly Vector3 LakeCenter = new Vector3(-11f, 0, -21f);
     const float LakeRadius = 4f;
