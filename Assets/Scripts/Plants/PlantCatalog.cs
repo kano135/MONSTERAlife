@@ -29,6 +29,11 @@ public static class PlantCatalog
         };
     }
 
+    // 전설의 꽃: 비밀 동굴의 큰 나무 밑에 씨앗이 딱 하나. 일반 목록(도감·들판 씨앗)에는 없다. 키워서 수확하면 마지막 이야기가 시작된다.
+    static PlantData legend;
+    public static PlantData Legend => legend ? legend :
+        legend = Make("99_legend", "별빛 꽃", "전설의 식물", 5, 1f, 0.3f, W(0.1f, 1f), S(0f, 1f), T(0f, 1f), "#7FF3E4", "", "#FFFFFF");
+
     static Vector2 W(float a, float b) => new Vector2(a, b);
     static Vector2 S(float a, float b) => new Vector2(a, b);
     static Vector2 T(float a, float b) => new Vector2(a, b);

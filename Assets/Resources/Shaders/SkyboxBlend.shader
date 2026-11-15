@@ -8,6 +8,7 @@ Shader "Monstera/SkyboxBlend"
         _TexB ("Sky B", 2D) = "grey" {}
         _Blend ("Blend A→B", Range(0, 1)) = 0
         _Exposure ("Exposure", Range(0, 2)) = 1
+        _Tint ("Tint", Color) = (1, 0.96, 1.04, 1)
         _Rotation ("Rotation", Range(0, 360)) = 0
     }
     SubShader
@@ -24,6 +25,7 @@ Shader "Monstera/SkyboxBlend"
 
             sampler2D _TexA, _TexB;
             float _Blend, _Exposure, _Rotation;
+            float4 _Tint;
 
             struct v2f { float4 pos : SV_POSITION; float3 dir : TEXCOORD0; };
 
@@ -48,7 +50,7 @@ Shader "Monstera/SkyboxBlend"
                 // 밉맵 0번을 직접 읽어 그림 이음매(경도 0/360도)에 줄이 생기지 않게
                 float4 uv = float4(LatLong(i.dir), 0, 0);
                 float4 c = lerp(tex2Dlod(_TexA, uv), tex2Dlod(_TexB, uv), _Blend);
-                return float4(c.rgb * _Exposure, 1);
+                return float4(c.rgb * _Tint.rgb * _Exposure, 1);
             }
             ENDCG
         }

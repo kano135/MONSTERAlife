@@ -22,8 +22,6 @@ public class HandItemView : MonoBehaviour
     Transform can, seed, block;
     Renderer body;
     Renderer[] trims;
-    SpriteRenderer seedSprite;
-    Renderer seedBall;
     Color shown = Full;
     PlantData seedShown;
     Renderer blockRend;
@@ -57,21 +55,10 @@ public class HandItemView : MonoBehaviour
         return root;
     }
 
-    // 씨앗: 씨앗 그림(Props/seed)에 식물 색을 살짝 입힌다. 그림이 없으면 작은 알.
+    // 씨앗: 3D 씨앗 모델(PlantModel.BuildSeed). 든 씨앗이 바뀌면 그 식물 색으로 다시 만든다(UpdateSeedColor).
     GameObject BuildSeed()
     {
         var root = new GameObject("HeldSeed");
-        var art = ArtLibrary.Ui("Props/seed");
-        if (art)
-        {
-            var go = new GameObject("Sprite", typeof(SpriteRenderer));
-            go.transform.SetParent(root.transform, false);
-            seedSprite = go.GetComponent<SpriteRenderer>();
-            seedSprite.sprite = art;
-            go.transform.localScale = Vector3.one * (0.45f / art.bounds.size.y); // 높이 0.45m
-        }
-        else seedBall = PrototypeBootstrap.Part(root.transform, PrimitiveType.Sphere, Vector3.zero, new Vector3(0.14f, 0.2f, 0.14f), Color.white).GetComponent<Renderer>();
-        NoShadows(root);
         root.SetActive(false);
         return root;
     }
@@ -166,9 +153,12 @@ public class HandItemView : MonoBehaviour
         var p = gm.Inv.HeldPlant;
         if (!p || p == seedShown) return;
         seedShown = p;
-        var tint = Color.Lerp(Color.white, p.color, 0.45f);
-        if (seedSprite) seedSprite.color = tint;
-        if (seedBall) seedBall.material.color = p.color;
+        foreach (Transform child in seed) Destroy(child.gameObject);
+        var model = PlantModel.BuildSeed(p.color);
+        model.transform.SetParent(seed, false);
+        model.transform.localScale = Vector3.one * 0.7f;        // 높이 약 0.42m
+        model.transform.localPosition = Vector3.down * 0.2f;   // 손 높이가 모델 가운데쯤
+        NoShadows(model);
     }
 
     void UpdateBlockColor(GameManager gm)

@@ -52,6 +52,8 @@ public class GameManager : MonoBehaviour
     public bool VisitedVillage;
     public readonly HashSet<int> ObjectivesDone = new HashSet<int>();
     public bool TestSendDone;
+    // 마지막(95일차): 지구가 보낸 귀환 연료통을 받았나 · 기지에 넣었나. 넣고 기지에 들어가면 엔딩.
+    public bool HasReturnFuel, ReturnFuelLoaded;
     public bool IsTestSendDay => !TestSendDone && Day >= Progression.TestSendDay && Day < Progression.SendEveryDays;
 
     // 가진 물건의 칸 순서(아래 칸 1~9 + 가방). 손에 든 씨앗으로 심는다.
@@ -82,10 +84,14 @@ public class GameManager : MonoBehaviour
         Player = player;
         Inv = new Inventory(this);
         Load();
+        if (Progression.TestStartWithAxe) Tools.Add(Progression.TestSendTool);
         ApplyUpgrades();
     }
 
     public bool HasUpgrade(string id) => Upgrades.Contains(id);
+    // id 로 식물 찾기(일반 목록 + 전설의 꽃)
+    public PlantData PlantById(string id) => Plants.Find(p => p.id == id) ?? (id == PlantCatalog.Legend.id ? PlantCatalog.Legend : null);
+
     public int SeedCount(PlantData p) => seeds.TryGetValue(p.id, out var n) ? n : 0;
     public void AddSeed(PlantData p, int n) => seeds[p.id] = SeedCount(p) + n;
     public int MaterialCount(string id) => materials.TryGetValue(id, out var n) ? n : 0;
@@ -126,6 +132,7 @@ public class GameManager : MonoBehaviour
             spot.Clear();
             return "썩은 꽃을 치웠어요";
         }
+        if (spot.IsBloomed && spot.Plant == PlantCatalog.Legend) return HarvestLegend(spot);
         if (spot.IsBloomed)
         {
             var p = spot.Plant;
@@ -160,18 +167,55 @@ public class GameManager : MonoBehaviour
         FlowerBag.Remove(rarest);
     }
 
-    // 이야기로 바로 끝내기(함께 잠들기): 눈이 감기고 엔딩 화면
-    public void EndStory(Ending ending)
+    // 테스트용(스토리 빨리 보기): 그날 아침으로 바로 넘어간다. 연료는 가득, 채집 자원은 다시 찬다.
+    public void SkipToDay(int day)
     {
-        if (IsGameOver) return;
-        StartCoroutine(EndStoryRoutine(ending));
+        Day = Mathf.Clamp(day, 1, Progression.TotalDays);
+        Minute = Progression.DayStartMinute;
+        Fuel = Progression.MaxFuel;
+        foreach (var n in Nodes) n.Refill();
     }
 
-    System.Collections.IEnumerator EndStoryRoutine(Ending ending)
+    // 전설의 꽃 수확 → 지구로 보낸다 → 지구가 귀환 연료통을 보낸다(기지 문 앞에서 넣고 들어가면 엔딩)
+    public bool LegendSeedTaken;
+    string HarvestLegend(PlantSpot spot)
+    {
+        spot.Clear();
+        LegendBloomed = true;
+        if (StoryFinal == 0) StoryFinal = StoryTrust >= StoryDirector.MessengerTrust ? 2 : 1; // 엔딩: 신뢰가 높으면 메신저, 아니면 정복
+        HasReturnFuel = true;
+        StoryUI.Instance.Narrate("별빛 꽃",
+            "큰 나무 밑에서 가져온 씨앗이 피어났어요.\n이 행성에서 가장 귀한 꽃 — 별빛 꽃이에요.\n\n로봇은 꽃을 송신기에 실어 지구로 보냈어요.", new Color32(72, 140, 62, 255));
+        StoryUI.Instance.Narrate("📡 지구에서 온 통신",
+            "\"전설의 꽃을 받았다. 임무 완료. 귀환 연료통을 보낸다.\"\n\n(귀환 연료통을 기지 문 앞에서 E로 넣고,\n기지에 들어가면 지구로 돌아가요)", new Color32(70, 120, 200, 255));
+        Save();
+        return "별빛 꽃을 지구로 보냈어요!";
+    }
+    public bool LegendBloomed;
+
+    // 귀환 연료통: 기지 문 앞에서 E로 넣는다
+    public string LoadReturnFuel()
+    {
+        ReturnFuelLoaded = true;
+        Save();
+        return "귀환 연료통을 기지에 넣었어요!\n기지에 들어가면 지구로 돌아가요";
+    }
+
+    // 연료를 넣은 기지에 들어가면: 기지가 떠오르며 지구로 → 엔딩(마지막 선택이 메신저면 메신저, 아니면 정복)
+    public void LaunchHome() => EndStory(StoryFinal == 2 ? Ending.Messenger : Ending.Conquest, "기지에 불이 켜지고, 땅이 흔들려요…\n지구로 돌아가요");
+
+    // 이야기로 바로 끝내기: 눈이 감기고 엔딩 화면
+    public void EndStory(Ending ending, string text = "송신기를 껐어요…\nZzz…")
+    {
+        if (IsGameOver) return;
+        StartCoroutine(EndStoryRoutine(ending, text));
+    }
+
+    System.Collections.IEnumerator EndStoryRoutine(Ending ending, string text)
     {
         Sleeping = true;
         var lids = Eyelids.Instance;
-        if (lids) yield return lids.Close(2.5f, "송신기를 껐어요…\nZzz…");
+        if (lids) yield return lids.Close(2.5f, text);
         Result = ending;
         if (lids) { yield return new WaitForSecondsRealtime(1.5f); lids.Hide(); }
         Sleeping = false;
@@ -374,7 +418,7 @@ public class GameManager : MonoBehaviour
 
     public void Restart()
     {
-        if (File.Exists(SavePath)) File.Delete(SavePath);
+        if (File.Exists(SavePath) && !Progression.TestStoryRun) File.Delete(SavePath); // 스토리 빨리 보기 중에는 원래 저장을 지우지 않는다
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
@@ -383,6 +427,7 @@ public class GameManager : MonoBehaviour
 
     public void Save()
     {
+        if (Progression.TestStoryRun) return; // 스토리 빨리 보기 중에는 원래 저장을 건드리지 않는다
         // 끝난 판은 남기지 않는다: 다음에 켜면 새 판
         if (IsGameOver)
         {
@@ -414,6 +459,10 @@ public class GameManager : MonoBehaviour
             visitedVillage = VisitedVillage,
             objectivesDone = ObjectivesDone.ToList(),
             testSendDone = TestSendDone,
+            hasReturnFuel = HasReturnFuel,
+            returnFuelLoaded = ReturnFuelLoaded,
+            legendSeedTaken = LegendSeedTaken,
+            legendBloomed = LegendBloomed,
             hasPosition = true,
             position = Player.position,
             yaw = Player.eulerAngles.y,
@@ -480,7 +529,7 @@ public class GameManager : MonoBehaviour
         Minute = save.minute >= Progression.DayStartMinute ? save.minute : Progression.DayStartMinute;
 
         for (int i = 0; i < Spots.Length && i < save.spots.Count; i++)
-            Spots[i].FromSave(save.spots[i], Plants.Find(p => p.id == save.spots[i].plantId));
+            Spots[i].FromSave(save.spots[i], PlantById(save.spots[i].plantId));
         // 채집 자원 수가 바뀐 옛 저장(예: 보라 바위 → 돌멩이)이면 순서가 안 맞으니 오늘 양은 가득 찬 채로 둔다
         if (save.nodeAmounts.Count == Nodes.Length)
             for (int i = 0; i < Nodes.Length; i++)
@@ -494,6 +543,10 @@ public class GameManager : MonoBehaviour
         if (save.counts != null && save.counts.Length == 4) { CountPlanted = save.counts[0]; CountWatered = save.counts[1]; CountSeedsPicked = save.counts[2]; CountPebbles = save.counts[3]; }
         VisitedVillage = save.visitedVillage;
         if (save.objectivesDone != null) ObjectivesDone.UnionWith(save.objectivesDone);
+        HasReturnFuel = save.hasReturnFuel;
+        ReturnFuelLoaded = save.returnFuelLoaded;
+        LegendSeedTaken = save.legendSeedTaken;
+        LegendBloomed = save.legendBloomed;
         TestSendDone = save.testSendDone || Day >= Progression.SendEveryDays; // 옛 저장(이미 5일차 넘음)이면 시험 발송은 건너뜀
         if (save.hasPosition)
         {
@@ -530,7 +583,7 @@ public class GameManager : MonoBehaviour
         public List<int> storySeen = new List<int>();
         public bool storyChildFlower;
         public int[] counts;
-        public bool visitedVillage, testSendDone;
+        public bool visitedVillage, testSendDone, hasReturnFuel, returnFuelLoaded, legendSeedTaken, legendBloomed;
         public List<int> objectivesDone = new List<int>();
         // 로봇 자리: 이어 하면 저장한 그 자리에서 시작(새 게임은 기지 안)
         public bool hasPosition;

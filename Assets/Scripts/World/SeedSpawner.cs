@@ -43,39 +43,32 @@ public class SeedSpawner : MonoBehaviour
             float angle = Random.value * Mathf.PI * 2;
             float dist = Random.Range(minRadius, maxRadius);
             pos = PrototypeBootstrap.BaseCenter + new Vector3(Mathf.Cos(angle) * dist, 0f, Mathf.Sin(angle) * dist);
-            found = !Lake.Overlaps(pos, 1f) && !Cliff.Blocks(pos, 1f) && !Village.Blocks(pos, 1f) && OnGround(ref pos);
+            found = !Lake.Overlaps(pos, 1f) && !Cliff.Blocks(pos, 1f) && !Village.Blocks(pos, 1f) && !Landscape.Blocks(pos, 1f) && Landscape.ShoreDistance(pos) > GroundView.Beach + 1f && OnGround(ref pos);
         }
         if (!found) return;
 
-        GameObject seed;
-        var art = ArtLibrary.World("Props/seed");
-        // 씨앗은 크게, 땅에 살짝 박힌 모양(아래쪽 SeedBuried 만큼이 땅속). 움직이지 않는다.
-        if (art)
-        {
-            // 씨앗 그림은 하나라서 식물 색을 살짝 입혀 구분한다
-            seed = new GameObject();
-            seed.transform.position = pos + Vector3.down * SeedHeight * SeedBuried;
-            Billboard.CreateByHeight(seed.transform, art, SeedHeight, Color.Lerp(Color.white, plant.color, 0.45f));
-        }
-        else
-        {
-            seed = PrototypeBootstrap.Part(null, PrimitiveType.Sphere, pos + Vector3.up * SeedHeight * (0.5f - SeedBuried), new Vector3(0.75f, 1f, 0.75f) * SeedHeight, plant.color);
-            Destroy(seed.GetComponent<Collider>());
-        }
+        // 씨앗 3D 모델(빛나는 꼬투리). 크게, 땅에 살짝 박힌 모양. 움직이지 않는다. 식물 색이 살짝 돌아 구분된다.
+        var seed = new GameObject();
+        seed.transform.position = pos;
+        var model = PlantModel.BuildSeed(plant.color).transform;
+        model.SetParent(seed.transform, false);
+        model.localScale = Vector3.one * SeedHeight / 0.6f; // 모델 높이 0.6m → SeedHeight
+        model.localPosition = Vector3.down * SeedHeight * SeedBuried;
+        model.localRotation = Quaternion.Euler(0, Random.value * 360f, 0);
         seed.name = $"Seed_{plant.id}";
         var pickup = seed.AddComponent<SeedPickup>();
         pickup.plant = plant;
         alive.Add(pickup);
     }
 
-    const float SeedHeight = 1.0f;  // 씨앗 그림 높이(m). 1.3 → 1.0 (조금 줄임)
-    const float SeedBuried = 0.3f;  // 그중 땅에 묻히는 비율
+    const float SeedHeight = 0.8f;  // 씨앗 모델 높이(m)
+    const float SeedBuried = 0.12f; // 그중 땅에 묻히는 비율
 
     // 위에서 아래로 쏴서 씨앗 자리를 땅 높이에 맞춘다. 바위 위·나무 줄기처럼 땅이 아니면 false → 다시 뽑기.
     static bool OnGround(ref Vector3 pos)
     {
         if (!Physics.Raycast(new Vector3(pos.x, 30f, pos.z), Vector3.down, out var hit, 60f)) return true;
-        if (hit.point.y > 0.2f) return false;
+        if (hit.point.y > Landscape.HeightAt(pos) + 0.2f) return false; // 언덕 위는 괜찮다
         pos.y = hit.point.y;
         return true;
     }

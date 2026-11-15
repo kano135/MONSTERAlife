@@ -8,7 +8,6 @@ public class PlantSpot : MonoBehaviour
 {
     public const int BloomStage = 4;
     public const float SoilTop = 0.25f;
-    static readonly Color RottenColor = new Color(0.35f, 0.25f, 0.15f);
 
     [Tooltip("비닐하우스 밖에 둘 때만 쓰는 햇빛·온도")]
     [Range(0, 1)] public float sunlight = 0.8f;
@@ -136,7 +135,7 @@ public class PlantSpot : MonoBehaviour
 
     void Start() => Refresh();
 
-    // 보이는 모습 고르기: 3D 모델(stagePrefabs) → 땅에 심은 GPT 그림(화분을 잘라 낸 _ground) → 임시 도형 순서
+    // 보이는 모습 고르기: 넣어 둔 3D 모델(stagePrefabs)이 있으면 그것, 없으면 코드로 빚은 3D 모델(PlantModel)
     // 심은 칸 표시: 씨앗 단계는 그림이 작아 빈 흙처럼 보이니, 심은 칸에는 젖은 흙 둔덕을 올린다
     static readonly Color MoundColor = new Color(0.27f, 0.17f, 0.1f);
     GameObject mound;
@@ -155,34 +154,16 @@ public class PlantSpot : MonoBehaviour
         if (Plant == null) return;
 
         var prefab = !IsRotten && Plant.stagePrefabs != null && Plant.stagePrefabs.Length > Stage ? Plant.stagePrefabs[Stage] : null;
-        var sprite = IsBloomed && IsVariant ? ArtLibrary.PlantVariantGround(Plant) ?? ArtLibrary.PlantStageGround(Plant, Stage) : ArtLibrary.PlantStageGround(Plant, Stage);
-        if (prefab)
-        {
-            visual = Instantiate(prefab, transform).transform;
-            visual.localPosition = Vector3.up * SoilTop;
-        }
-        else if (sprite)
-        {
-            // 폭 SpriteWidth 기준으로 맞추되, 길쭉한 그림(해바라기)은 높이 MaxSpriteHeight 를 넘지 않게
-            float aspect = sprite.bounds.size.y / sprite.bounds.size.x;
-            float width = Mathf.Min(SpriteWidth, MaxSpriteHeight / aspect);
-            visual = Billboard.Create(transform, sprite, width, IsRotten ? RottenTint : Color.white).transform;
-            // 그림 맨 아래 얇은 화분 테두리(그림 높이의 5% 정도)만 흙 속에 묻는다. 잎은 흙 위로 다 보이게(자라난 모습).
-            visual.localPosition = Vector3.up * (SoilTop - width * aspect * PotRimFraction);
-        }
+        if (prefab) visual = Instantiate(prefab, transform).transform;
         else
         {
-            // shortcut: 썩은 모습은 색만 바꾼 임시 모습. 썩은 그림이 생기면 그걸 쓴다.
-            var color = IsRotten ? RottenColor : IsVariant ? Plant.variantColor : Plant.color;
-            visual = PlaceholderPlant.Build(transform, Stage, color, IsRotten);
-            visual.localPosition = Vector3.up * SoilTop;
+            // 코드로 빚은 3D 모델(PlantModel). 칸마다 조금씩 돌려 심어 똑같아 보이지 않게.
+            visual = PlantModel.Build(Plant, Stage, IsBloomed && IsVariant, IsRotten).transform;
+            visual.SetParent(transform, false);
+            visual.localRotation = Quaternion.Euler(0, Mathf.Repeat(transform.position.x * 37f + transform.position.z * 61f, 1f) * 50f - 25f, 0);
         }
+        visual.localPosition = Vector3.up * SoilTop;
     }
-
-    const float SpriteWidth = 1.5f;
-    const float PotRimFraction = 0.05f;  // 그림 높이 중 흙에 묻는 비율
-    const float MaxSpriteHeight = 1.3f; // 식물 그림 최대 높이(m). 로봇 키 1.7
-    static readonly Color RottenTint = new Color(0.55f, 0.4f, 0.3f);
 }
 
 [System.Serializable]

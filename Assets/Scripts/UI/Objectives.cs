@@ -1,8 +1,7 @@
 using System;
 using UnityEngine;
-using UnityEngine.UI;
 
-// 첫날 할 일: 화면 오른쪽 위 카드. 하나씩 끝낼 때마다 작은 보상. 다 끝내면 잠깐 "다 했어요!" 후 사라진다.
+// 첫날 할 일: Esc 메뉴 '미션' 탭에서 본다(화면에는 안 띄운다). 하나씩 끝낼 때마다 작은 보상과 알림.
 // ★ 아래 Goals 표만 고치면 할 일·목표 수·보상이 바뀐다.
 public class Objectives : MonoBehaviour
 {
@@ -14,6 +13,8 @@ public class Objectives : MonoBehaviour
         public string rewardText;
         public Action<GameManager> reward;
     }
+
+    public static int GoalCount => Goals.Length;
 
     static readonly Goal[] Goals =
     {
@@ -33,35 +34,19 @@ public class Objectives : MonoBehaviour
 
     GameManager gm;
     PlayerController player;
-    GameObject card;
-    Text body;
-    float allDoneAt = -1;
+
+    // Esc 메뉴 '미션' 탭에 보여 줄 글(화면에는 따로 띄우지 않는다)
+    public static string Summary { get; private set; } = "";
 
     void Start()
     {
         gm = GameManager.Instance;
         player = gm.Player.GetComponent<PlayerController>();
-        if (gm.ObjectivesDone.Count >= Goals.Length) { enabled = false; return; } // 이미 다 함(이어 하기)
-
-        var canvasGo = new GameObject("ObjectivesCanvas", typeof(Canvas), typeof(CanvasScaler));
-        canvasGo.transform.SetParent(transform, false);
-        canvasGo.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
-        canvasGo.GetComponent<Canvas>().sortingOrder = 5;
-        var scaler = canvasGo.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
-        var root = (RectTransform)canvasGo.transform;
-        var panel = UiKit.Panel(root, "Objectives", UiKit.Cream, UiKit.DarkGreen);
-        card = panel.Root().Place(new Vector2(1, 1), new Vector2(-24, -24), new Vector2(470, 300)).gameObject;
-        UiKit.Label(panel.transform, "첫날 할 일", 28, UiKit.DarkGreen).rectTransform.Place(new Vector2(0, 1), new Vector2(20, -12), new Vector2(430, 40));
-        body = UiKit.Label(panel.transform, "", 21, UiKit.Ink, TextAnchor.UpperLeft);
-        body.rectTransform.Place(new Vector2(0, 1), new Vector2(20, -58), new Vector2(440, 236));
     }
 
     void Update()
     {
-        if (!gm || gm.IsGameOver) { if (card) card.SetActive(false); return; }
+        if (!gm || gm.IsGameOver) return;
         // 원주민 마을 가 보기
         if (!gm.VisitedVillage)
         {
@@ -86,12 +71,7 @@ public class Objectives : MonoBehaviour
             lines.Append(done ? $"<color=#488C3E>● {g.text}</color>\n" : $"○ {g.text}{count}\n");
         }
         if (gm.ObjectivesDone.Count >= Goals.Length)
-        {
-            if (allDoneAt < 0) allDoneAt = Time.time;
-            lines.Append("\n<color=#488C3E>다 했어요! 이제 자유롭게 탐험해요</color>");
-            if (Time.time - allDoneAt > 8f) { card.SetActive(false); enabled = false; return; }
-        }
-        body.text = lines.ToString();
-        card.SetActive(!Hud.AnyPanelOpen || StoryUI.IsOpen); // 메뉴 창이 열려 있으면 숨김
+            lines.Append("<color=#488C3E>다 했어요! 이제 자유롭게 탐험해요</color>");
+        Summary = lines.ToString();
     }
 }

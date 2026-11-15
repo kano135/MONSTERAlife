@@ -24,6 +24,7 @@ public class Inventory
     }
 
     public const string CanKey = "tool:can";
+    public const string ReturnFuelKey = "item:returnfuel"; // 마지막에 지구가 보내는 귀환 연료통(기지 문 앞에서 E로 넣는다)
     public const string FuelKey = "test:fuel"; // 테스트용 무제한 연료통(Progression.TestInfiniteFuel)
     public static string SeedKey(PlantData p) => "seed:" + p.id;
     public static string MaterialKey(string id) => "mat:" + id;
@@ -62,6 +63,7 @@ public class Inventory
         string key = HeldKey;
         if (key == CanKey) return "물뿌리개를 들었어요. 자라는 꽃 앞에서 E로 물을 줘요";
         if (key == FuelKey) return "연료통(테스트)을 들었어요. E로 연료를 채워요";
+        if (key == ReturnFuelKey) return "귀환 연료통을 들었어요. 기지 문 앞에서 E로 넣어요";
         if (key.StartsWith("mat:")) return $"{Name(key)}을(를) 들었어요. 업그레이드(U)에 쓰는 재료예요";
         if (key.StartsWith("fert:")) return $"{Name(key)}을(를) 들었어요. 자라는 꽃 앞에서 F로 줘요";
         return $"{Name(key)}을(를) 들었어요. 빈 밭 앞에서 E로 심어요";
@@ -71,6 +73,7 @@ public class Inventory
     {
         if (key == CanKey) return 1; // 물뿌리개는 늘 가지고 있다
         if (key == FuelKey) return Progression.TestInfiniteFuel ? 1 : 0; // 끄면 칸에서 사라진다
+        if (key == ReturnFuelKey) return gm.HasReturnFuel && !gm.ReturnFuelLoaded ? 1 : 0;
         if (key.StartsWith("seed:")) { var p = PlantOf(key); return p ? gm.SeedCount(p) : 0; }
         if (key.StartsWith("mat:")) return gm.MaterialCount(key.Substring(4));
         if (key.StartsWith("fert:")) return gm.FertilizerCount(int.Parse(key.Substring(5)));
@@ -94,13 +97,15 @@ public class Inventory
     IEnumerable<string> AllKeys()
     {
         yield return CanKey; // 새 판이면 1번 칸
+        yield return ReturnFuelKey;
         yield return FuelKey;
         foreach (var p in gm.Plants) yield return SeedKey(p);
+        yield return SeedKey(PlantCatalog.Legend);
         foreach (var m in Progression.Materials) yield return MaterialKey(m.id);
         for (int g = 1; g <= Progression.FertilizerGrades; g++) yield return FertilizerKey(g);
     }
 
-    PlantData PlantOf(string key) => key.StartsWith("seed:") ? gm.Plants.Find(p => p.id == key.Substring(5)) : null;
+    PlantData PlantOf(string key) => key.StartsWith("seed:") ? gm.PlantById(key.Substring(5)) : null;
 
     // ───────── 보여 주기 ─────────
 
@@ -108,6 +113,7 @@ public class Inventory
     {
         if (key == CanKey) return "물뿌리개";
         if (key == FuelKey) return "연료통(테스트)";
+        if (key == ReturnFuelKey) return "귀환 연료통";
         if (key.StartsWith("seed:")) { var p = PlantOf(key); return p ? $"{p.displayName} 씨앗" : "씨앗"; }
         if (key.StartsWith("mat:")) return Progression.GetMaterial(key.Substring(4)).name;
         if (key.StartsWith("fert:")) return $"비료 {key.Substring(5)}단계";
@@ -118,7 +124,7 @@ public class Inventory
     public Sprite Icon(string key)
     {
         if (key == CanKey) return ArtLibrary.Ui("Icons/wateringcan");
-        if (key == FuelKey) return ArtLibrary.Ui("Icons/fuel"); // 그림이 없으면 주황 동그라미
+        if (key == FuelKey || key == ReturnFuelKey) return ArtLibrary.Ui("Icons/fuel"); // 그림이 없으면 색 동그라미
         if (key.StartsWith("seed:")) { var p = PlantOf(key); return p ? ArtLibrary.PlantIcon(p) : null; }
         if (key.StartsWith("mat:")) return ArtLibrary.Ui("Icons/mat_" + key.Substring(4));
         if (key.StartsWith("fert:")) return ArtLibrary.Ui("Icons/fertilizer");
@@ -129,6 +135,7 @@ public class Inventory
     {
         if (key == CanKey) return new Color(0.43f, 0.78f, 0.94f);
         if (key == FuelKey) return new Color(1f, 0.62f, 0.26f);
+        if (key == ReturnFuelKey) return new Color(0.45f, 0.85f, 0.95f);
         if (key.StartsWith("seed:")) { var p = PlantOf(key); return p ? p.color : Color.white; }
         switch (key)
         {

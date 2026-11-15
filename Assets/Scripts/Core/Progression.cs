@@ -35,6 +35,10 @@ public static class Progression
 
     // ★ 테스트용: 물건 칸에 무제한 연료통(들고 E → 연료 MissionFuel 만큼). 정식 게임에서는 false 로 끈다.
     public const bool TestInfiniteFuel = true;
+    // ★ 테스트용: 처음부터 도끼를 가진다(나무를 바로 벨 수 있다). 정식 게임에서는 false 로 끈다(원래는 시험 발송 보상).
+    public const bool TestStartWithAxe = true;
+    // ★ 테스트용: 스토리 빨리 보기(StoryAutoRun). 들어가자마자 이야기를 1일차부터 카드만 차례로 넘겨 본다. 이 동안은 저장하지 않는다. 평소에는 false.
+    public const bool TestStoryRun = false;
     public static int MissionNumber(int day) => day / SendEveryDays;
     public static int SurviveLine(int mission) => 3 + mission;
     public static int UpgradeLine(int mission) => SurviveLine(mission) * 2;

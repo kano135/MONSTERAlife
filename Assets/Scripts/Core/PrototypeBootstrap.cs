@@ -21,7 +21,9 @@ public static class PrototypeBootstrap
         if (Object.FindFirstObjectByType<GameManager>()) return;
 
         var plants = PlantCatalog.Load();
-        DayNight.Build(GroundView.Build()); // 시간대에 따라 하늘·땅·빛 색이 바뀐다
+        var ground = GroundView.Build();
+        DayNight.Build(ground); // 시간대에 따라 하늘·땅·빛 색이 바뀐다
+        SkyPlanet.Build(); // 하늘의 고리 달린 보라 행성
         var home = BuildBase();
         var player = BuildRobot(home);
         // 시작은 기지 안 방에서(문으로 나가면 계단 꼭대기). 충전기(home)는 그대로 밖에 있다.
@@ -30,8 +32,12 @@ public static class PrototypeBootstrap
         var spots = BuildGreenhouse();
         BuildSendStation();
         Lake.Build(LakeCenter, LakeRadius);
-        Cliff.Build(); // 맵 왼쪽 끝 절벽·폭포·동굴
-        Village.Build(); // 동쪽 원주민 마을(임시: 타원형)
+        Cliff.Build(); // 서쪽 폭포 산(오각형 바위산 · 계단식 폭포 · 강)
+        Village.Build(); // 동쪽 원주민 마을
+        NativeGreeter.Build(new Vector3(2.5f, 0, -18.5f)); // 첫날 기지 문 앞에서 말을 거는 원주민
+        Landscape.Build(ground); // 완만한 언덕 + 오두막 마을들
+        Sea.Build(); // 맵 밖 바다(수면 + 바닥)
+        SecretCave.Build(); // 폭포 산 남서쪽 기슭의 비밀 동굴(지킴이 · 큰 나무 · 전설의 씨앗)
         var nodes = BuildResources();
 
         var cam = Camera.main ? Camera.main.gameObject : new GameObject("Main Camera", typeof(Camera)) { tag = "MainCamera" };
@@ -46,6 +52,7 @@ public static class PrototypeBootstrap
         StoryUI.Build();
         systems.AddComponent<StoryDirector>(); // 날짜별 이야기·선택·결말
         systems.AddComponent<Objectives>();    // 첫날 할 일(오른쪽 위)
+        if (Progression.TestStoryRun) systems.AddComponent<StoryAutoRun>(); // 테스트용 스토리 빨리 보기
 #if UNITY_EDITOR
         systems.AddComponent<DevScreenshots>();
 #endif
@@ -104,22 +111,7 @@ public static class PrototypeBootstrap
             Part(pad, PrimitiveType.Cylinder, Vector3.up * 0.1f, new Vector3(1.2f, 0.05f, 1.2f), new Color(1f, 0.83f, 0.3f));
         }
 
-        // 울타리: 원을 40조각으로 나눠 낮은 벽을 세우고, 남쪽(-z) 두 조각은 비워 출입구로
-        const int segments = 40;
-        float length = 2 * Mathf.PI * FenceRadius / segments * 1.05f;
-        for (int i = 0; i < segments; i++)
-        {
-            float angle = (i + 0.5f) / segments * Mathf.PI * 2;
-            var dir = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
-            if (Vector3.Angle(dir, Vector3.back) < 12f) continue;
-            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            wall.name = "Fence";
-            wall.transform.SetParent(root, false);
-            wall.transform.position = BaseCenter + dir * FenceRadius + Vector3.up * 0.5f;
-            wall.transform.rotation = Quaternion.LookRotation(dir);
-            wall.transform.localScale = new Vector3(length, 1f, 0.25f);
-            wall.GetComponent<Renderer>().material.color = new Color(0.78f, 0.6f, 0.42f);
-        }
+        // (예전에는 기지 둘레에 낮은 울타리 벽이 있었는데 없앴다. 기지 자리 FenceRadius 는 씨앗·자원이 안 생기는 범위로만 쓴다)
         BaseInterior.Build(dome); // 계단 오르기 + 문으로 들어가는 넓은 안쪽 방
         return pad.position;
     }
@@ -151,6 +143,8 @@ public static class PrototypeBootstrap
         robot.AddComponent<PlayerController>();
         robot.AddComponent<HandItemView>();
 
+        // 캐릭터 3D 모델(바구니 멘 로봇 M-01) + 걷기·점프 애니메이션. 키 RobotHeight, 얼굴(+Z)이 가는 쪽을 본다.
+        if (RobotModel.Build(robot.transform, RobotHeight)) return robot.transform;
         if (RobotSprite.HasArt)
         {
             robot.AddComponent<RobotSprite>();
@@ -161,6 +155,8 @@ public static class PrototypeBootstrap
         Part(robot.transform, PrimitiveType.Cube, new Vector3(0, 0.6f, 0.3f), new Vector3(0.4f, 0.12f, 0.1f), new Color(0.15f, 0.2f, 0.25f));
         return robot.transform;
     }
+
+    const float RobotHeight = 1.7f;
 
     // 비닐하우스(앞쪽 문으로 걸어 들어간다) 안에 4×4 밭. 맨 뒷줄 4칸은 밭 확장 업그레이드로 열린다.
     // 저장 순서가 바뀌지 않게 밭은 항상 16칸, 같은 순서로 만든다.
@@ -186,8 +182,12 @@ public static class PrototypeBootstrap
 
     // 채집 자원: 나무=나무(도끼), 회색 돌=돌멩이(중간 돌은 드릴, 작은 돌은 그냥 줍기), 하늘색 결정=얼음 결정(채수기).
     // 자리는 정해진 난수로 뽑아서 매번 같다(저장 순서가 맞아야 해서). 나중에 지도를 받으면 자리만 그걸로 바꾸면 된다.
-    const int TreeCount = 90; // 맵 320m 기준 듬성듬성
-    const int IceCount = 16;
+    const int GroveTrees = 60;   // 언덕 비탈에 무리 지어 나는 나무
+    const int ScatterTrees = 85; // 들판 곳곳의 나무 무리 수(무리마다 2~4그루. 숲 나무 수는 Landscape.Forests 표, 마을 둘레는 Town.Towns 표)
+    const float ForestFootprint = 1.3f; // 숲 나무 한 그루가 차지하는 반지름(작을수록 빽빽)
+    const float GroveSpread = 22f; // 숲 하나의 반지름
+    const float TreeMinSize = 1.5f, TreeMaxSize = 2.2f; // 나무 크기 배율(팩 모델 4~6m 기준)
+    const int IceCount = 0; // 하늘색 수정(얼음 결정)은 뺐다. 다시 넣으려면 숫자만 올리면 된다
 
     static ResourceNode[] BuildResources()
     {
@@ -210,16 +210,66 @@ public static class PrototypeBootstrap
         var bark = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.45f, 0.3f, 0.18f) };
         var leaves = new Material[3];
         for (int k = 0; k < leaves.Length; k++)
-            leaves[k] = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.32f + k * 0.05f, 0.58f + k * 0.04f, 0.28f) };
-        for (int i = 0; i < TreeCount; i++)
+            leaves[k] = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.34f + k * 0.04f, 0.66f + k * 0.03f, 0.6f) }; // 청록 잎(팩이 없을 때)
+        // 나무 심는 순서: ① 숲(빽빽하게, 숲마다 주로 자라는 나무가 있다) ② 언덕 비탈 무리 ③ 들판에 듬성듬성
+        var groves = new System.Collections.Generic.List<Vector3>(Landscape.GroveCenters());
+        var jobs = new System.Collections.Generic.List<(int mode, int index)>();
+        for (int f = 0; f < Landscape.Forests.Length; f++)
+            for (int k = 0; k < Landscape.Forests[f].trees; k++) jobs.Add((0, f));
+        for (int k = 0; k < GroveTrees; k++) jobs.Add((1, k));
+        for (int tw = 0; tw < Town.Towns.Length; tw++)
+            for (int k = 0; k < Town.Towns[tw].beltTrees; k++) jobs.Add((3, tw));
+        for (int k = 0; k < ScatterTrees; k++) jobs.Add((2, k));
+        var clump = Vector3.zero; int clumpLeft = 0;
+        for (int ji = 0; ji < jobs.Count; ji++)
         {
-            if (!FreeSpot(rng, 1.6f, 3f, taken, out var pos)) continue;
+            (int mode, int index) job = jobs[ji];
+            if (clumpLeft > 0 && job.mode == 2) { job = (4, 0); clumpLeft--; ji--; } // 이번 차례는 곁나무, 원래 차례는 다음에
+            Vector3 pos;
+            bool ok;
+            int kind = -1; // 숲이면 그 숲의 나무
+            if (job.mode == 0)
+            {
+                var fo = Landscape.Forests[job.index];
+                ok = FreeSpotNear(rng, new Vector3(fo.x, 0, fo.z), fo.radius, ForestFootprint, 0.3f, taken, out pos);
+                if (look.NextDouble() < 0.72) kind = fo.kind;
+            }
+            else if (job.mode == 1 && groves.Count > 0) ok = FreeSpotNear(rng, groves[job.index % groves.Count], GroveSpread, 1.6f * TreeMinSize, 0.4f, taken, out pos);
+            else if (job.mode == 3)
+            {
+                // 마을 둘레 숲 띠: 울타리 바로 밖부터 14m 두께로 빽빽하게. 기지 쪽(들어오는 길)은 터놓는다.
+                var tw = Town.Towns[job.index];
+                var toBase = new Vector3(BaseCenter.x - tw.x, 0, BaseCenter.z - tw.z);
+                pos = default; ok = false;
+                for (int tries = 0; tries < 8 && !ok; tries++)
+                {
+                    float a = (float)rng.NextDouble() * Mathf.PI * 2f, d = tw.radius + 8f + (float)rng.NextDouble() * 14f;
+                    pos = new Vector3(tw.x + Mathf.Cos(a) * d, 0, tw.z + Mathf.Sin(a) * d);
+                    ok = Vector3.Angle(toBase, pos - new Vector3(tw.x, 0, tw.z)) > 24f && SpotOk(ref pos, ForestFootprint, 0.3f, taken);
+                }
+                kind = job.index + (look.NextDouble() < 0.6 ? 0 : 1);
+            }
+            else if (job.mode == 4) ok = FreeSpotNear(rng, clump, 5.5f, ForestFootprint, 0.5f, taken, out pos); // 들판 나무 곁에 한두 그루 더
+            else
+            {
+                ok = FreeSpot(rng, 1.6f * TreeMinSize, 2f, taken, out pos);
+                clump = pos;
+                clumpLeft = ok ? rng.Next(1, 4) : 0; // 들판 나무는 2~4그루씩 무리 지어 난다
+            }
+            if (!ok) continue;
             var go = Add("Tree", "scrap", pos);
-            float size = 0.8f + (float)rng.NextDouble() * 0.5f;
+            float size = TreeMinSize + (float)rng.NextDouble() * (TreeMaxSize - TreeMinSize);
             go.transform.rotation = Quaternion.Euler(0, (float)rng.NextDouble() * 360f, 0);
             go.transform.localScale = Vector3.one * size;
             var leaf = leaves[rng.Next(leaves.Length)];
-            var model = NaturePack.Spawn(NaturePack.Trees[look.Next(NaturePack.Trees.Length)], go.transform, Vector3.zero, 0, 1f); // 실제 크기(나무 4~6m) × 자리마다 0.8~1.3배
+            int pick = look.Next(NaturePack.Trees.Length);
+            var model = NaturePack.Spawn(NaturePack.Trees[kind >= 0 ? kind % NaturePack.Trees.Length : pick], go.transform, Vector3.zero, 0, 1f); // 실제 크기(나무 4~6m) × 자리마다 TreeMinSize~TreeMaxSize배
+            // 파스텔 행성 색: 소나무는 산호 분홍, 참나무·자작나무는 청록(벚나무·단풍나무는 그대로)
+            if (model)
+            {
+                if (model.name.Contains("pine")) NaturePack.Recolor(model, NaturePack.Tint.Coral);
+                else if (model.name.Contains("oak") || model.name.Contains("birch")) NaturePack.Recolor(model, NaturePack.Tint.Teal);
+            }
             if (!model)
             {
                 Shape(go.transform, PrimitiveType.Cylinder, new Vector3(0, 1.4f, 0), new Vector3(0.5f, 1.4f, 0.5f), bark);
@@ -234,7 +284,7 @@ public static class PrototypeBootstrap
                 trunk.height = 3f;
                 trunk.center = Vector3.up * 1.5f;
             }
-            taken.Add((pos, 1.6f * size));
+            taken.Add((pos, (job.mode == 0 || job.mode >= 3 ? ForestFootprint * 0.85f : 1.6f) * size)); // 숲·무리 나무는 서로 가깝게
         }
 
         for (int i = 0; i < IceCount; i++)
@@ -253,20 +303,48 @@ public static class PrototypeBootstrap
     static bool FreeSpot(System.Random rng, float radius, float gap,
         System.Collections.Generic.List<(Vector3 pos, float radius)> taken, out Vector3 pos)
     {
-        float lim = GroundView.Size / 2f - radius - 1f;
+        float edge = radius + 1f;
         for (int tries = 0; tries < 40; tries++)
         {
-            pos = new Vector3((float)(rng.NextDouble() * 2 - 1) * lim, 0, (float)(rng.NextDouble() * 2 - 1) * lim);
-            var fromBase = pos - BaseCenter;
-            fromBase.y = 0;
-            if (fromBase.magnitude < FenceRadius + radius + 2f || Lake.Overlaps(pos, radius + 1.5f) || Cliff.Blocks(pos, radius + 1.5f) || Village.Blocks(pos, radius + 1.5f)) continue;
-            bool clear = true;
-            foreach (var t in taken)
-                if ((t.pos - pos).sqrMagnitude < Sq(t.radius + radius + gap)) { clear = false; break; }
-            if (clear) return true;
+            pos = new Vector3(Mathf.Lerp(GroundView.MinX + edge, GroundView.MaxX - edge, (float)rng.NextDouble()), 0,
+                Mathf.Lerp(GroundView.MinZ + edge, GroundView.MaxZ - edge, (float)rng.NextDouble()));
+            if (SpotOk(ref pos, radius, gap, taken)) return true;
         }
         pos = default;
         return false;
+    }
+
+    // center 둘레 spread 안에서 빈자리 찾기(숲처럼 모여 나게)
+    static bool FreeSpotNear(System.Random rng, Vector3 center, float spread, float radius, float gap,
+        System.Collections.Generic.List<(Vector3 pos, float radius)> taken, out Vector3 pos)
+    {
+        float edge = radius + 1f;
+        for (int tries = 0; tries < 40; tries++)
+        {
+            float a = (float)rng.NextDouble() * Mathf.PI * 2, d = Mathf.Sqrt((float)rng.NextDouble()) * spread;
+            pos = center + new Vector3(Mathf.Cos(a) * d, 0, Mathf.Sin(a) * d);
+            if (pos.x < GroundView.MinX + edge || pos.x > GroundView.MaxX - edge || pos.z < GroundView.MinZ + edge || pos.z > GroundView.MaxZ - edge) continue;
+            if (SpotOk(ref pos, radius, gap, taken)) return true;
+        }
+        pos = default;
+        return false;
+    }
+
+    // 기지·호수·절벽·마을·집·다른 자원과 안 겹치면 true. 높이는 그 자리 땅(언덕) 높이로 맞춘다.
+    static bool SpotOk(ref Vector3 pos, float radius, float gap, System.Collections.Generic.List<(Vector3 pos, float radius)> taken)
+    {
+        if (Landscape.ShoreDistance(pos) < GroundView.Beach + radius) return false; // 바닷가 모래사장·바다에는 안 놓는다
+        var fromBase = pos - BaseCenter;
+        fromBase.y = 0;
+        if (fromBase.magnitude < FenceRadius + radius + 2f || Lake.Overlaps(pos, radius + 1.5f) || Cliff.Blocks(pos, radius + 1.5f)
+            || Village.Blocks(pos, radius + 1.5f) || Landscape.Blocks(pos, radius + 1.5f) || Landscape.OnPath(pos, radius * 0.5f + 0.6f)) return false;
+        foreach (var t in taken)
+        {
+            var d = t.pos - pos; d.y = 0;
+            if (d.sqrMagnitude < Sq(t.radius + radius + gap)) return false;
+        }
+        pos.y = Landscape.HeightAt(pos);
+        return true;
     }
 
     // 충돌 없는 도형 하나(재질은 나눠 쓴다)
@@ -287,8 +365,8 @@ public static class PrototypeBootstrap
     // scale = 공 크기, y = 공 가운데 높이(음수면 땅에 묻힘), radius = 자리 잡을 때 쓰는 크기, amount = 하루에 얻는 개수.
     static readonly (string name, int count, Vector3 scale, float y, float radius, int amount, bool pickup, Color color)[] Stones =
     {
-        ("Stone_Medium", 10,   new Vector3(1.6f, 1f, 1.4f),    0.4f,   0.8f,  3, false, new Color(0.6f, 0.58f, 0.55f)),
-        ("Stone_Small",  100, new Vector3(0.5f, 0.3f, 0.45f), -0.08f, 0.25f, 1, true,  new Color(0.66f, 0.64f, 0.6f)),
+        ("Stone_Medium", 10,   new Vector3(1.6f, 1f, 1.4f),    0.4f,   0.8f,  3, false, new Color(0.6f, 0.53f, 0.74f)),
+        ("Stone_Small",  100, new Vector3(0.5f, 0.3f, 0.45f), -0.08f, 0.25f, 1, true,  new Color(0.7f, 0.63f, 0.84f)),
     };
 
     static void BuildStones(System.Random rng,
@@ -318,6 +396,7 @@ public static class PrototypeBootstrap
                 var rockModel = s.pickup ? null : NaturePack.Spawn(NaturePack.Rocks[(int)(pos.x * 7 + pos.z * 13) & 1], go.transform, Vector3.zero, 0, 1.1f);
                 if (rockModel)
                 {
+                    NaturePack.Recolor(rockModel, NaturePack.Tint.Lavender);
                     if (!NaturePack.HasCollider(rockModel)) rockModel.AddComponent<SphereCollider>().center = Vector3.up * 0.5f;
                     taken.Add((pos, s.radius));
                     continue;
@@ -339,9 +418,9 @@ public static class PrototypeBootstrap
     // 꾸미기(자원 아님): 팩이 있을 때만. 꽃덤불·해바라기·빨간 버섯을 들판에, 선인장을 여기저기, 폭포 둘레에 야자수·현무암 기둥.
     static readonly (string model, int count, float minScale, float maxScale, float radius)[] Decor =
     {
-        ("bush_flower_01",      45, 1.0f, 1.5f, 0.8f),
-        ("flower_sunflower_01", 25, 1.0f, 1.4f, 0.6f),
-        ("mushroom_red_01",     35, 1.6f, 2.6f, 0.4f),
+        ("bush_flower_01",      170, 1.0f, 1.7f, 0.8f),
+        ("flower_sunflower_01", 70, 1.0f, 1.4f, 0.6f),
+        ("mushroom_red_01",     70, 1.6f, 2.6f, 0.4f),
         ("cactus_saguaro_01",   10, 1.0f, 1.4f, 1.2f),
     };
 

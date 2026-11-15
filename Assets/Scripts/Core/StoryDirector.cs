@@ -75,11 +75,23 @@ public class StoryDirector : MonoBehaviour
                 bool messenger = gm.StoryTrust >= MessengerTrust;
                 if (i == 0) gm.StoryFinal = 1;                       // 정복
                 else if (messenger && i == 1) gm.StoryFinal = 2;     // 메신저
-                else { gm.StoryFinal = 3; gm.EndStory(GameManager.Ending.Together); } // 함께 잠들기
+                else { gm.StoryFinal = 3; gm.EndStory(GameManager.Ending.Together); return; } // 함께 잠들기
+                // 보고를 받은 지구가 귀환 연료통을 보낸다 → 기지 문 앞에서 넣고 기지에 들어가면 엔딩
+                gm.HasReturnFuel = true;
+                StoryUI.Instance.Narrate("📡 지구에서 온 통신",
+                    (gm.StoryFinal == 1 ? "\"보고를 받았다. 수고했다. 귀환 연료통을 보낸다.\"" : "\"이야기를 받았다… 귀환 연료통을 보낸다. 돌아와서 들려다오.\"") +
+                    "\n\n(귀환 연료통을 기지 문 앞에서 E로 넣고,\n기지에 들어가면 지구로 돌아가요)", Earth);
             } },
     };
 
     void Awake() => Instance = this;
+
+    // 아직 안 본 이야기 중 오늘 뒤로 가장 가까운 날(없으면 -1). 스토리 빨리 보기가 쓴다.
+    public static int NextBeatDay(GameManager gm)
+    {
+        var days = Beats.Where(b => b.day > gm.Day && !gm.StorySeen.Contains(b.day)).Select(b => b.day).ToList();
+        return days.Count > 0 ? days.Min() : -1;
+    }
 
     public int Trust => GameManager.Instance ? GameManager.Instance.StoryTrust : 0;
 

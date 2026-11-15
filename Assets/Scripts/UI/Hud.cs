@@ -37,7 +37,8 @@ public class Hud : MonoBehaviour
     RectTransform root;
 
     Text fuelText, lifeText, bagText, matText, fertText;
-    RectTransform fuelBar, lifeBar;
+    RectTransform fuelBar, lifeBar, staminaBar;
+    Text staminaText, objectivesText;
     Image face;
     Sprite faceNeutral, faceHappy, faceSleepy, faceSurprised;
 
@@ -105,7 +106,7 @@ public class Hud : MonoBehaviour
         BuildHotbar();
         BuildPrompt();
         BuildToast();
-        BuildHints();
+        // 조작법은 화면 왼쪽 아래 대신 Esc 메뉴 '조작법' 탭에(BuildSettings)
         BuildBook();
         BuildUpgrade();
         BuildSettings();
@@ -122,8 +123,9 @@ public class Hud : MonoBehaviour
 
         // 화면에는 연료만(막대 + 며칠치 남았는지). 행성 생명력·가방·재료·비료는 Esc 메뉴 '상태' 탭에.
         var card = UiKit.Panel(root, "Status", UiKit.Cream);
-        card.Root().Place(new Vector2(0, 1), new Vector2(24, -150), new Vector2(460, 84));
+        card.Root().Place(new Vector2(0, 1), new Vector2(24, -150), new Vector2(460, 126));
         (fuelText, fuelBar) = BarRow(card.transform, -22, "연료", UiKit.Orange);
+        (staminaText, staminaBar) = BarRow(card.transform, -64, "스태미나", UiKit.DarkGreen); // 달리기·벽 타기에 닳는다
 
         // 로봇 얼굴은 카드 오른쪽 위 바깥에 스티커처럼(숫자를 가리지 않게)
         face = UiKit.Icon(card.Root(), faceNeutral, new Vector2(1, 1), new Vector2(10, 100), 96);
@@ -145,7 +147,7 @@ public class Hud : MonoBehaviour
     {
         if (!Greenhouse.Instance) return;
         var card = UiKit.Panel(root, "GreenhouseInfo", UiKit.Cream, UiKit.DarkGreen);
-        greenhouseBox = card.Root().Place(new Vector2(0, 1), new Vector2(24, -256), new Vector2(460, 236)).gameObject;
+        greenhouseBox = card.Root().Place(new Vector2(0, 1), new Vector2(24, -298), new Vector2(460, 236)).gameObject;
         UiKit.Label(card.transform, "비닐하우스", 28, UiKit.DarkGreen).rectTransform.Place(new Vector2(0, 1), new Vector2(20, -12), new Vector2(420, 40));
         string[] icons = { "Icons/water", "Icons/temp", "Icons/sun" };
         Color[] colors = { UiKit.Sky, UiKit.Pink, UiKit.Yellow };
@@ -200,13 +202,13 @@ public class Hud : MonoBehaviour
     void BuildMission(Transform parent)
     {
         var card = UiKit.Panel(parent, "Mission", Color.white, UiKit.DarkGreen);
-        card.Root().Place(new Vector2(0.5f, 1), new Vector2(0, -10), new Vector2(470, 290));
-        missionTitle = UiKit.Label(card.transform, "", 28, UiKit.DarkGreen);
-        missionTitle.rectTransform.Place(new Vector2(0, 1), new Vector2(20, -14), new Vector2(430, 40));
+        card.Root().Place(new Vector2(0.5f, 1), new Vector2(0, -6), new Vector2(640, 222));
+        missionTitle = UiKit.Label(card.transform, "", 26, UiKit.DarkGreen);
+        missionTitle.rectTransform.Place(new Vector2(0, 1), new Vector2(20, -10), new Vector2(600, 38));
 
         missionBar = UiKit.Bar(card.transform, UiKit.Muted, UiKit.Yellow);
         var barRt = (RectTransform)missionBar.parent;
-        barRt.Place(new Vector2(0, 1), new Vector2(20, -62), new Vector2(420, 30));
+        barRt.Place(new Vector2(0, 1), new Vector2(20, -54), new Vector2(600, 26));
         string[] names = { "생존", "업글", "최종" };
         missionMarks = new RectTransform[3];
         for (int i = 0; i < 3; i++)
@@ -219,8 +221,8 @@ public class Hud : MonoBehaviour
             label.rectTransform.Place(new Vector2(0.5f, 0), new Vector2(0, -24), new Vector2(60, 22));
             missionMarks[i] = mark;
         }
-        missionBody = UiKit.Label(card.transform, "", 21, UiKit.Ink, TextAnchor.UpperLeft);
-        missionBody.rectTransform.Place(new Vector2(0, 1), new Vector2(20, -120), new Vector2(430, 160));
+        missionBody = UiKit.Label(card.transform, "", 19, UiKit.Ink, TextAnchor.UpperLeft);
+        missionBody.rectTransform.Place(new Vector2(0, 1), new Vector2(20, -106), new Vector2(600, 112));
     }
 
     // 아래 칸 9개(숫자 키 1~9). 칸 번호만 고정이고, 무엇이 들어가는지는 얻은 순서(Inventory). Esc 가방에서 옮길 수 있다.
@@ -376,14 +378,6 @@ public class Hud : MonoBehaviour
         toast.gameObject.SetActive(false);
     }
 
-    void BuildHints()
-    {
-        var card = UiKit.Panel(root, "Hints", new Color(1, 1, 1, 0.85f), UiKit.Muted, 3);
-        card.Root().Place(new Vector2(0, 0), new Vector2(24, 24), new Vector2(420, 160));
-        UiKit.Label(card.transform, "WASD 이동 · Shift 달리기 · E 행동\nF 비료 · Q 충전기에서 쉬기 · 1~9·Tab 손에 들기\n호수에서 E 물뿌리개 채우기\nB 도감 · U 업그레이드\nV 1인칭/3인칭 · Esc 메뉴(가방·미션·상태·설정)", 18, UiKit.Ink, TextAnchor.MiddleCenter)
-            .rectTransform.Stretch(6);
-    }
-
     Image BigPanel(string name, Vector2 size)
     {
         var frame = ArtLibrary.Ui("UI/panel_frame");
@@ -476,28 +470,28 @@ public class Hud : MonoBehaviour
             .rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0, -250), new Vector2(600, 40));
     }
 
-    // Esc 메뉴: 탭 4개(가방 · 미션 · 상태 · 설정). 화면에는 연료만 두고 나머지 정보는 여기서 본다.
+    // Esc 메뉴: 탭 5개(가방 · 미션 · 상태 · 조작법 · 설정). 화면에는 연료만 두고 나머지 정보는 여기서 본다.
     //   가방 = 물건 칸 옮기기·손에 들기, 미션 = 다음 발송 미션 기준선, 상태 = 행성 생명력·꽃 가방·재료·비료·도구·물뿌리개, 설정 = 시점·마우스 감도
     void BuildSettings()
     {
         var panel = UiKit.Panel(root, "Menu", UiKit.Cream, UiKit.DarkGreen, 6);
-        settings = panel.Root().Place(new Vector2(0.5f, 0.5f), new Vector2(0, 30), new Vector2(760, 560)).gameObject;
+        settings = panel.Root().Place(new Vector2(0.5f, 0.5f), new Vector2(0, 20), new Vector2(760, 650)).gameObject;
         UiKit.Label(panel.transform, "메뉴", 40, UiKit.DarkGreen, TextAnchor.MiddleLeft)
             .rectTransform.Place(new Vector2(0, 1), new Vector2(30, -18), new Vector2(200, 56));
         UiKit.Label(panel.transform, "Esc 닫기", 22, UiKit.Ink, TextAnchor.MiddleRight)
             .rectTransform.Place(new Vector2(1, 1), new Vector2(-24, -26), new Vector2(200, 40));
 
-        string[] names = { "가방", "미션", "상태", "설정" };
+        string[] names = { "가방", "미션", "상태", "조작법", "설정" };
         menuTabs = new GameObject[names.Length];
         menuTabButtons = new Image[names.Length];
         for (int i = 0; i < names.Length; i++)
         {
             int index = i;
             var btn = UiKit.Button(panel.transform, names[i], UiKit.Muted, () => ShowTab(index));
-            ((RectTransform)btn.transform).Place(new Vector2(0.5f, 1), new Vector2(-255 + i * 170, -90), new Vector2(150, 56));
+            ((RectTransform)btn.transform).Place(new Vector2(0.5f, 1), new Vector2(-280 + i * 140, -90), new Vector2(128, 56));
             menuTabButtons[i] = (Image)btn.targetGraphic;
             var tab = UiKit.Rect(panel.transform, "Tab_" + names[i]);
-            tab.Place(new Vector2(0.5f, 1), new Vector2(0, -160), new Vector2(700, 380));
+            tab.Place(new Vector2(0.5f, 1), new Vector2(0, -160), new Vector2(700, 470));
             menuTabs[i] = tab.gameObject;
         }
 
@@ -519,8 +513,25 @@ public class Hud : MonoBehaviour
             MakeSlot(bag, i, new Vector2(left + i * step + cell / 2, -288 - cell / 2), new Vector2(0.5f, 1), cell, true)
                 .GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
 
-        // 미션 탭
+        // 미션 탭: 위 = 다음 발송 미션, 아래 = 첫날 할 일
         BuildMission(menuTabs[1].transform);
+        var todo = UiKit.Panel(menuTabs[1].transform, "FirstDay", Color.white, UiKit.DarkGreen);
+        todo.Root().Place(new Vector2(0.5f, 1), new Vector2(0, -238), new Vector2(640, 228));
+        UiKit.Label(todo.transform, "첫날 할 일", 26, UiKit.DarkGreen).rectTransform.Place(new Vector2(0, 1), new Vector2(20, -10), new Vector2(600, 38));
+        objectivesText = UiKit.Label(todo.transform, "", 18, UiKit.Ink, TextAnchor.UpperLeft);
+        objectivesText.rectTransform.Place(new Vector2(0, 1), new Vector2(20, -48), new Vector2(600, 176));
+
+        // 조작법 탭(예전 화면 왼쪽 아래 안내)
+        UiKit.Label(menuTabs[3].transform,
+            "WASD 이동 · Shift 달리기 (스태미나)\n" +
+            "Space 점프 · 가파른 벽에 대고 W 벽 타기 (스태미나)\n" +
+            "E 행동: 심기 · 물 주기 · 수확 · 채집 · 줍기 · 지구로 보내기\n" +
+            "F 비료 주기 · Q 충전기에서 쉬기 (하루 끝)\n" +
+            "1~9 · Tab 손에 들기\n" +
+            "연못에서 E 물뿌리개 채우기\n" +
+            "B 도감 · U 업그레이드\n" +
+            "V 1인칭 / 3인칭 · Esc 메뉴",
+            24, UiKit.Ink, TextAnchor.UpperCenter).rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0, -20), new Vector2(680, 420));
 
         // 상태 탭
         var st = menuTabs[2].transform;
@@ -537,7 +548,7 @@ public class Hud : MonoBehaviour
         canInfoText.rectTransform.Place(new Vector2(0, 1), new Vector2(60, -254), new Vector2(600, 36));
 
         // 설정 탭: 시점(1인칭/3인칭)과 마우스 감도. 고른 값은 다음에 켜도 남는다(CameraRig).
-        var set = menuTabs[3].transform;
+        var set = menuTabs[4].transform;
         viewText = UiKit.Label(set, "", 26, UiKit.Ink, TextAnchor.MiddleCenter);
         viewText.rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0, -10), new Vector2(560, 40));
         var first = UiKit.Button(set, "1인칭", UiKit.Yellow, () => CameraRig.SetFirstPerson(true));
@@ -552,6 +563,17 @@ public class Hud : MonoBehaviour
         ((RectTransform)faster.transform).Place(new Vector2(0.5f, 1), new Vector2(120, -210), new Vector2(120, 64));
         UiKit.Label(set, "V 키로도 시점을 바꿀 수 있어요", 20, UiKit.Ink, TextAnchor.MiddleCenter)
             .rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0, -310), new Vector2(560, 34));
+
+        // 개발용: 저장을 지우고 1일차부터 다시. 실수로 누르지 않게 두 번 눌러야 한다.
+        bool armed = false;
+        Button reset = null;
+        reset = UiKit.Button(set, "1일차부터 다시 (개발용)", new Color(0.95f, 0.55f, 0.5f), () =>
+        {
+            if (armed) { GameManager.Instance.Restart(); return; }
+            armed = true;
+            reset.GetComponentInChildren<Text>().text = "정말? 한 번 더 누르면 리셋";
+        });
+        ((RectTransform)reset.transform).Place(new Vector2(0.5f, 1), new Vector2(0, -380), new Vector2(360, 60));
 
         ShowTab(0);
         settings.SetActive(false);
@@ -684,6 +706,11 @@ public class Hud : MonoBehaviour
         float days = gm.Fuel / Progression.FuelPerDay;
         fuelText.text = $"{days:0.#}일 남음";
         UiKit.SetBar(fuelBar, gm.Fuel / Progression.MaxFuel);
+        if (player)
+        {
+            UiKit.SetBar(staminaBar, player.Stamina / PlayerController.MaxStamina);
+            staminaText.text = player.Exhausted ? "지침" : player.Climbing ? "타는 중" : player.Wet > 0.5f ? "물속" : "";
+        }
         if (!settings.activeSelf) { UpdateFace(); return; } // 나머지는 Esc 메뉴가 열려 있을 때만
         toolText.text = "도구 " + (gm.Tools.Count > 0 ? string.Join(", ", gm.Tools.Select(t => Progression.GetTool(t).name)) : "없음");
         canInfoText.text = $"물뿌리개 Lv{gm.CanLevel} · {gm.CanWater}/{gm.CanCapacity}회 · 강화권 {gm.CanTokens}장";
@@ -719,6 +746,7 @@ public class Hud : MonoBehaviour
 
     void UpdateMission()
     {
+        if (objectivesText) objectivesText.text = Objectives.Summary;
         int sendDay = Progression.NextSendDay(gm.Day);
         if (gm.LastMissionDay == gm.Day) sendDay += Progression.SendEveryDays;
         int mission = Progression.MissionNumber(sendDay);
@@ -748,7 +776,14 @@ public class Hud : MonoBehaviour
         envRows.SetActive(false);
         promptBody.text = "";
         promptKey.text = "E";
-        if (player.NearStation)
+        var greeter = NativeGreeter.Instance;
+        if (greeter && greeter.CanTalk(player.transform.position))
+        {
+            promptTitle.text = "원주민";
+            promptBody.text = "보랏빛 원주민이 로봇 앞에 와 있어요.\n무언가 말하고 싶어 하는 것 같아요.";
+            promptAction.text = "말 걸기";
+        }
+        else if (player.NearStation)
         {
             promptTitle.text = "지구 송신기";
             bool sendDay = (Progression.IsSendDay(gm.Day) && gm.LastMissionDay != gm.Day) || gm.IsTestSendDay;
@@ -789,6 +824,16 @@ public class Hud : MonoBehaviour
             promptTitle.text = "기지 문";
             promptBody.text = player.NearBaseDoor ? "기지 안은 바깥보다 훨씬 넓어요." : "밖으로 나가면 계단 위로 나와요.";
             promptAction.text = player.NearBaseDoor ? "들어가기" : "밖으로 나가기";
+            if (player.NearBaseDoor && gm.HasReturnFuel && !gm.ReturnFuelLoaded)
+            {
+                promptBody.text = "지구에서 온 귀환 연료통이 있어요.\n기지에 넣으면 지구로 돌아갈 수 있어요.";
+                promptAction.text = "귀환 연료통 넣기";
+            }
+            else if (player.NearBaseDoor && gm.ReturnFuelLoaded)
+            {
+                promptBody.text = "귀환 연료가 가득 찼어요.\n들어가면 지구로 떠나요. (게임이 끝나요)";
+                promptAction.text = "들어가서 지구로 돌아가기";
+            }
         }
         else if (player.NearLake)
         {

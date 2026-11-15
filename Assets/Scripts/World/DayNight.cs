@@ -27,9 +27,10 @@ public class DayNight : MonoBehaviour
 
     // 하늘 위, 지평선, 땅(그림에 곱하는 색), 햇빛 색, 햇빛 세기, 해 높이(도), 주변광
     // 지평선 색은 하늘 그림의 지평선 줄을 평균 낸 값(sky_day 173,195,242 · sky_morning 249,223,194 · sky_night 45,58,103)
-    static readonly Look Day    = new Look(C(118, 170, 235), C(173, 195, 242), new Color(1.35f, 1.08f, 1.06f), C(255, 246, 225), 1.6f, 55f, C(184, 199, 209));
-    static readonly Look Dawn   = new Look(C(120, 140, 205), C(249, 223, 194), new Color(0.95f, 0.75f, 0.72f), C(255, 205, 155), 0.9f, 12f, C(140, 128, 140));
-    static readonly Look Sunset = new Look(C(105, 108, 190), C(249, 210, 180), new Color(0.95f, 0.68f, 0.62f), C(255, 158, 102), 0.8f, 8f, C(140, 115, 128));
+    // 파스텔 외계 행성 색감: 땅은 민트(베이지 땅 그림 × 민트), 안개·지평선은 라벤더
+    static readonly Look Day    = new Look(C(118, 170, 235), C(200, 196, 240), new Color(0.9f, 1.22f, 1.02f), C(255, 246, 235), 1.6f, 55f, C(190, 190, 220));
+    static readonly Look Dawn   = new Look(C(120, 140, 205), C(249, 223, 194), new Color(0.85f, 0.95f, 0.9f), C(255, 205, 175), 0.9f, 12f, C(150, 135, 160));
+    static readonly Look Sunset = new Look(C(105, 108, 190), C(249, 210, 180), new Color(0.85f, 0.85f, 0.85f), C(255, 165, 130), 0.8f, 8f, C(150, 120, 150));
     static readonly Look Night  = new Look(C(14, 18, 46), C(45, 58, 103), new Color(0.45f, 0.47f, 0.65f), C(140, 165, 255), 0.3f, 40f, C(46, 51, 82));
 
     // (게임 시각(분), 그때 색). 사이는 섞는다. 하루는 오전 6시에 시작해 새벽 2시(26시)에 끝난다.

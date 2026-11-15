@@ -41,7 +41,13 @@ public class CameraRig : MonoBehaviour
     {
         FirstPerson = PlayerPrefs.GetInt(ViewKey, 1) == 1;
         Sensitivity = PlayerPrefs.GetFloat(SensitivityKey, 0.15f);
-        GetComponent<Camera>().nearClipPlane = 0.05f;
+        var cam = GetComponent<Camera>();
+        cam.nearClipPlane = 0.05f;
+        // 멀리 있는 나무·덤불은 안 그린다(안개에 흐려진 거리). 나무가 많아도 느려지지 않게.
+        var cull = new float[32];
+        cull[NaturePack.TreeLayer] = NaturePack.TreeDistance;
+        cull[NaturePack.SmallLayer] = NaturePack.SmallDistance;
+        cam.layerCullDistances = cull;
     }
 
     void Start()
@@ -78,6 +84,16 @@ public class CameraRig : MonoBehaviour
         var position = FirstPerson
             ? target.position + Vector3.up * eyeHeight
             : target.position + Vector3.up * 1.2f - rotation * Vector3.forward * distance;
+        if (!FirstPerson)
+        {
+            // 3인칭 카메라가 언덕·나무·벽 속으로 들어가면 안이 비어 보여서(찢어진 것처럼) 그 앞에 멈춘다
+            var pivot = target.position + Vector3.up * 1.2f;
+            var back = position - pivot;
+            if (Physics.SphereCast(pivot, 0.25f, back.normalized, out var hit, back.magnitude, ~(1 << 2), QueryTriggerInteraction.Ignore))
+                position = pivot + back.normalized * Mathf.Max(0.3f, hit.distance - 0.05f);
+        }
+        // 카메라가 언덕 땅속으로 내려가지 않게(기지 안 방은 제외)
+        if (position.y > -20f) position.y = Mathf.Max(position.y, Landscape.HeightAt(position) + 0.3f);
         transform.SetPositionAndRotation(position, rotation);
     }
 }
