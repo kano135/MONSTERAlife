@@ -39,6 +39,14 @@ public class BaseInterior : MonoBehaviour
     {
         var renderers = habitat.GetComponentsInChildren<Renderer>();
         var treads = renderers.Where(r => r.name.StartsWith("Stair_tread")).ToList();
+        var doorSpot = habitat.Find("DoorSpot");
+        if (treads.Count == 0 && doorSpot)
+        {
+            // 코드로 빚은 기지(BaseModel): 문 앞 발 자리가 표시돼 있다(계단 없이 낮은 받침)
+            outward = doorSpot.forward; outward.y = 0; outward.Normalize();
+            outsideDoor = doorSpot.position;
+            return;
+        }
         if (treads.Count == 0)
         {
             // 3D 모델이 없을 때(임시 돔): 돔 오른쪽(+x) 문 앞을 입구로

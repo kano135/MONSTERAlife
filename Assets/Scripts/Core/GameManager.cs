@@ -74,6 +74,8 @@ public class GameManager : MonoBehaviour
     int rewardsGiven;
 
     string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
+    // 저장된 판이 있나(시작 화면 '이어 하기')
+    public static bool SaveExists => File.Exists(Path.Combine(Application.persistentDataPath, "save.json"));
 
     public void Init(List<PlantData> plants, PlantSpot[] spots, ResourceNode[] nodes, Transform player)
     {

@@ -691,6 +691,15 @@ public class Hud : MonoBehaviour
         }
     }
 
+    // 시작 화면 '설정': Esc 메뉴를 설정 탭으로 연다
+    public void OpenSettings()
+    {
+        book.SetActive(false);
+        upgrade.SetActive(false);
+        settings.SetActive(true);
+        ShowTab(4);
+    }
+
     // 창은 하나만 열린다
     void Toggle(GameObject panel)
     {

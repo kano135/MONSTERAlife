@@ -1,0 +1,283 @@
+<title>MONSTERAlife 포트폴리오</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* 레이아웃: 큰 하늘빛 표지 한 장 → 장(章)마다 큰 장면 하나 + 작은 장면 묶음. 사진이 주인공, 글은 짧게. */
+:root {
+  --bg: #f4f1fb;          /* 연보라 하늘 */
+  --panel: #ffffff;
+  --ink: #2b2540;
+  --muted: #4b4466;
+  --line: #ddd6ee;
+  --mint: #1f7f6b;        /* 행성의 청록(글씨로 써도 읽히게 진하게) */
+  --coral: #c2414d;       /* 산호빛 */
+  --chip: #e9f6f1;
+  --font-display: "Jua", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #17142a; --panel: #211d38; --ink: #f6f3ff; --muted: #d6d0ee; --line: #3d3660;
+  --mint: #7fe6cc; --coral: #ffb0b7; --chip: #1f3a35; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #17142a; --panel: #211d38; --ink: #f6f3ff; --muted: #d6d0ee; --line: #3d3660;
+  --mint: #7fe6cc; --coral: #ffb0b7; --chip: #1f3a35; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.7; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header.hero { display: grid; gap: 22px; }
+.hero .shot { border-radius: 18px; overflow: hidden; border: 1px solid var(--line); }
+.hero h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(44px, 8vw, 92px); line-height: 1; margin: 0; letter-spacing: 0.01em; text-wrap: balance; }
+.hero h1 span { color: var(--mint); }
+.hero .lead { font-size: clamp(18px, 2.2vw, 22px); max-width: 60ch; margin: 0; color: var(--ink); }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; list-style: none; }
+.facts li { background: var(--chip); color: var(--ink); border-radius: 999px; padding: 4px 12px; font-size: 14px; }
+.facts b { font-family: var(--font-mono); font-weight: 500; color: var(--mint); margin-right: 4px; }
+
+section.chapter { margin-top: 64px; display: grid; gap: 18px; }
+.chapter-head { display: grid; gap: 4px; max-width: 70ch; }
+.chapter-head .eyebrow { font-family: var(--font-mono); font-size: 14px; font-weight: 500; letter-spacing: 0.08em; color: var(--coral); }
+.chapter-head h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 4vw, 40px); margin: 0; line-height: 1.15; text-wrap: balance; }
+.chapter-head p { margin: 0; color: var(--ink); font-size: 17px; }
+
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.grid.two { grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
+figure { margin: 0; display: grid; gap: 8px; min-width: 0; }
+figure.big { grid-column: 1 / -1; }
+figure button { all: unset; cursor: zoom-in; display: block; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: var(--panel); }
+figure button:focus-visible { outline: 3px solid var(--mint); outline-offset: 2px; }
+figure img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; transition: transform .35s ease; }
+figure button:hover img { transform: scale(1.025); }
+figcaption { font-size: 16px; color: var(--muted); line-height: 1.55; }
+figcaption b { color: var(--ink); font-weight: 400; font-family: var(--font-display); font-size: 18px; margin-right: 6px; }
+
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 14px 16px; border: 1px dashed var(--line); border-radius: 12px; font-size: 15px; }
+.flow span { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 3px 10px; }
+.flow i { font-style: normal; color: var(--mint); }
+
+.about { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
+.about .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: grid; gap: 6px; min-width: 0; }
+.about h3 { font-family: var(--font-display); font-weight: 400; font-size: 21px; margin: 0; color: var(--mint); }
+.about p { margin: 0; font-size: 16px; }
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-left: 3px solid var(--line); margin-left: 8px; }
+.timeline li { position: relative; padding: 4px 0 14px 22px; display: grid; gap: 2px; }
+.timeline li::before { content: ""; position: absolute; left: -9px; top: 10px; width: 14px; height: 14px; border-radius: 50%; background: var(--mint); border: 3px solid var(--bg); }
+.timeline li.earth::before { background: #4d74c9; }
+.timeline li.choice::before { background: var(--coral); }
+.timeline .day { font-family: var(--font-mono); font-weight: 500; font-size: 14px; color: var(--muted); }
+.timeline .what { font-size: 17px; }
+.timeline .what b { font-family: var(--font-display); font-weight: 400; font-size: 19px; margin-right: 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 15px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; background: var(--mint); }
+.legend .e::before { background: #4d74c9; }
+.legend .c::before { background: var(--coral); }
+.ends { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
+.ends .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 4px; }
+.ends h3 { font-family: var(--font-display); font-weight: 400; font-size: 20px; margin: 0; }
+.ends p { margin: 0; font-size: 15.5px; }
+.ends .if { font-family: var(--font-mono); font-size: 13px; color: var(--coral); font-weight: 500; }
+
+footer { margin-top: 64px; color: var(--muted); font-size: 15px; border-top: 1px solid var(--line); padding-top: 16px; }
+
+dialog { border: 0; padding: 0; background: transparent; max-width: min(96vw, 1600px); }
+dialog::backdrop { background: rgba(10, 8, 20, 0.86); }
+dialog img { display: block; max-width: 100%; max-height: 86vh; border-radius: 10px; }
+dialog p { color: #f1edff; margin: 10px 2px 0; font-size: 15px; }
+dialog form { position: absolute; top: 8px; right: 8px; }
+dialog form button { font: inherit; background: rgba(0,0,0,.55); color: #fff; border: 0; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { figure img { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="shot"><img src="img/00_hero.jpg" alt="멀리서 내려다본 기지와 비닐하우스, 충전기 옆에 선 로봇 M-01, 뒤로 연못과 원주민 마을, 폭포 산" width="1600" height="900"></div>
+    <h1>MONSTER<span>A</span>life</h1>
+    <p class="lead">지구가 보낸 작은 꽃 재배 로봇이 파스텔빛 외계 행성에서 100일을 보내요. 꽃을 키워 지구로 보낼지, 이 행성의 주인인 꽃 모양 원주민들의 편이 될지 고르는 3D 생활 어드벤처입니다.</p>
+    <ul class="facts">
+      <li><b>100</b>일 이야기</li>
+      <li><b>3</b>개 결말 + 연료 엔딩</li>
+      <li><b>10</b>종 꽃 + 전설의 꽃 1</li>
+      <li><b>470×320</b>m 맵</li>
+      <li><b>Unity 6</b> URP · 코드로 생성한 월드</li>
+    </ul>
+  </header>
+
+  <section class="chapter" aria-labelledby="c0">
+    <div class="chapter-head">
+      <span class="eyebrow">ABOUT · 이 게임은</span>
+      <h2 id="c0">꽃을 키우러 온 로봇, 그런데 이 행성엔 주인이 있었다</h2>
+    </div>
+    <div class="grid two">
+      <figure><button type="button"><img src="img/00_title.jpg" alt="시작 화면" loading="lazy"></button><figcaption><b>시작 화면</b>새 게임 · 이어 하기 · 설정 · 종료</figcaption></figure>
+      <div class="about">
+        <div class="card"><h3>누구 · 어디</h3><p>지구가 보낸 꽃 재배 로봇 M-01. 파스텔빛 외계 행성에 혼자 내려와요.</p></div>
+        <div class="card"><h3>무엇을 하나</h3><p>씨앗을 줍고, 비닐하우스에서 키우고, 5일마다 지구로 보내요. 연료가 떨어지면 잠들어요.</p></div>
+        <div class="card"><h3>무엇을 고르나</h3><p>꽃을 보낼수록 원주민의 믿음이 줄어요. 지구의 임무와 원주민 사이에서 100일 동안 골라요.</p></div>
+      </div>
+    </div>
+    <div class="flow" aria-label="하루 흐름">
+      <span>아침 · 밭 돌보기</span><i>→</i><span>낮 · 탐험과 채집</span><i>→</i><span>원주민과 이야기</span><i>→</i><span>밤 · 충전하고 잠</span><i>→</i><span>5일마다 지구로 발송</span>
+    </div>
+  </section>
+
+  <section class="chapter" aria-labelledby="cs">
+    <div class="chapter-head">
+      <span class="eyebrow">STORY · 100일</span>
+      <h2 id="cs">이야기는 이렇게 흘러가요</h2>
+      <p>정해진 날 아침마다 이야기 카드가 와요. 선택에 따라 보이지 않는 '신뢰'가 오르내려요.</p>
+    </div>
+    <div class="legend"><span>원주민·행성</span><span class="e">지구 통신</span><span class="c">선택하는 날</span></div>
+    <ol class="timeline">
+      <li><span class="day">1일</span><span class="what"><b>첫 만남</b>원주민이 다가와 말을 걸어요. 말은 안 통해도 반가워해요.</span></li>
+      <li class="earth"><span class="day">2일</span><span class="what"><b>시험 발송</b>꽃 한 송이를 보내면 지구가 도끼를 보내 줘요.</span></li>
+      <li class="choice"><span class="day">10 · 15일</span><span class="what"><b>원주민 아이의 꽃</b>받을까, 지구에 보낼까, 간직할까.</span></li>
+      <li><span class="day">25일</span><span class="what"><b>제단의 꽃</b>원주민에게 꽃은 생명 같은 것이었어요.</span></li>
+      <li class="earth"><span class="day">30일</span><span class="what"><b>이주 준비</b>로봇이 하던 일의 진짜 뜻을 알게 돼요.</span></li>
+      <li class="choice"><span class="day">40 · 60일</span><span class="what"><b>꽃을 돌려 달라 · 아픈 원주민</b>지구의 점수와 원주민 사이에서 골라요.</span></li>
+      <li><span class="day">70일</span><span class="what"><b>원주민의 마음</b>믿음이 높으면 열매를 주고, 낮으면 밭을 망쳐요.</span></li>
+      <li><span class="day">90일</span><span class="what"><b>비밀 동굴</b>지킴이가 길을 비켜 줘요. 큰 나무 밑에 별빛 꽃 씨앗.</span></li>
+      <li class="choice"><span class="day">95일 ~</span><span class="what"><b>마지막 보고</b>무엇을 보낼지 고르고, 귀환 연료통을 기지에 넣고 떠나요.</span></li>
+    </ol>
+    <div class="ends">
+      <div class="card"><span class="if">신뢰 50 이상</span><h3>메신저</h3><p>꽃 대신 원주민의 이야기를 보내요. 지구는 손님으로 찾아와요.</p></div>
+      <div class="card"><span class="if">꽃을 전부 보내면</span><h3>정복</h3><p>이주 함대가 오고, 원주민은 터전을 잃어요.</p></div>
+      <div class="card"><span class="if">송신기를 끄면</span><h3>함께 잠들기</h3><p>지구와 연결을 끊고 원주민 곁에 남아요.</p></div>
+      <div class="card"><span class="if">연료가 바닥나면</span><h3>잠드는 엔딩</h3><p>어느 날이든, 로봇은 그 자리에서 잠들어요.</p></div>
+    </div>
+  </section>
+
+  <section class="chapter" aria-labelledby="c1">
+    <div class="chapter-head">
+      <span class="eyebrow">DAY 1 · 첫 만남</span>
+      <h2 id="c1">말이 통하지 않는 첫인사</h2>
+      <p>기지 밖으로 나오면 보랏빛 원주민이 로봇 앞까지 걸어와요. 말을 걸기 전에는 멀리 갈 수 없는 첫 강제 미션이에요.</p>
+    </div>
+    <div class="grid two">
+      <figure><button type="button"><img src="img/01_greeter_arrives.jpg" alt="원주민이 로봇 앞에 와서 기다리는 장면" loading="lazy"></button><figcaption><b>다가오는 원주민</b>오른쪽 아래에 E 말 걸기 안내가 떠요.</figcaption></figure>
+      <figure><button type="button"><img src="img/02_greeter_dialogue.jpg" alt="첫 대화 카드" loading="lazy"></button><figcaption><b>첫 대화</b>"말은 통하지 않지만, 반가워하는 것 같아요."</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="chapter" aria-labelledby="c2">
+    <div class="chapter-head">
+      <span class="eyebrow">PLAY · 로봇</span>
+      <h2 id="c2">걷고, 뛰고, 기르고</h2>
+      <p>바구니를 멘 M-01 로봇에는 걷기·점프 애니메이션이 있어요. 비닐하우스 밭에서 꽃을 심고, 물 주고, 수확해요.</p>
+    </div>
+    <div class="grid">
+      <figure><button type="button"><img src="img/03_walk.jpg" alt="로봇이 걷는 모습" loading="lazy"></button><figcaption><b>걷기</b>팔다리가 번갈아 흔들려요.</figcaption></figure>
+      <figure><button type="button"><img src="img/04_jump.jpg" alt="로봇이 점프하는 모습" loading="lazy"></button><figcaption><b>점프</b>웅크렸다 팔을 벌리며 뛰어요.</figcaption></figure>
+      <figure><button type="button"><img src="img/05_greenhouse.jpg" alt="비닐하우스 밭의 3D 새싹들" loading="lazy"></button><figcaption><b>비닐하우스</b>씨앗 → 발아 → 성장 → 꽃봉오리 → 개화.</figcaption></figure>
+      <figure><button type="button"><img src="img/06b_base.jpg" alt="돔과 탑, 위성 안테나가 있는 기지" loading="lazy"></button><figcaption><b>기지</b>돔 · 탑 · 위성 안테나. 안에서 쉬고 잠들어요.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="chapter" aria-labelledby="c3">
+    <div class="chapter-head">
+      <span class="eyebrow">WORLD · 마을</span>
+      <h2 id="c3">숲에 둘러싸인 원주민 마을</h2>
+      <p>광장을 둘러싼 박공지붕 집, 줄무늬 좌판, 벤치와 등불. 마을마다 빽빽한 숲이 감싸고, 기지 쪽으로만 길이 나 있어요.</p>
+    </div>
+    <div class="grid">
+      <figure class="big"><button type="button"><img src="img/08_town_air.jpg" alt="위에서 본 원주민 마을" loading="lazy"></button><figcaption><b>원주민 마을</b>가운데 꽃 제단과 원주민들.</figcaption></figure>
+      <figure><button type="button"><img src="img/07_town_inside.jpg" alt="마을 광장 안" loading="lazy"></button><figcaption><b>광장 안</b>좌판과 벤치 사이를 걸어요.</figcaption></figure>
+      <figure><button type="button"><img src="img/09_town_south.jpg" alt="남쪽 마을" loading="lazy"></button><figcaption><b>남쪽 마을</b>단풍 숲과 우물이 있는 마을.</figcaption></figure>
+      <figure><button type="button"><img src="img/23_town_night.jpg" alt="밤의 마을" loading="lazy"></button><figcaption><b>밤</b>창문마다 불이 켜져요.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="chapter" aria-labelledby="c4">
+    <div class="chapter-head">
+      <span class="eyebrow">STORY · 선택</span>
+      <h2 id="c4">날짜마다 오는 이야기 카드</h2>
+      <p>2·3·5·10·15·25·30·40·55·60·70·85·95일차에 카드가 와요. 고른 선택에 따라 보이지 않는 신뢰가 오르내리고, 그게 결말을 바꿔요.</p>
+    </div>
+    <div class="grid two">
+      <figure><button type="button"><img src="img/10_story_choice.jpg" alt="10일차 원주민 아이 선택 카드" loading="lazy"></button><figcaption><b>10일차 · 원주민 아이</b>꽃을 받는다(+10) · 지나친다(−5)</figcaption></figure>
+      <figure><button type="button"><img src="img/17_cave_guard.jpg" alt="동굴 지킴이가 막아서는 장면" loading="lazy"></button><figcaption><b>지킴이</b>"여기는 신비한 곳이라 들어갈 수 없어요."</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="chapter" aria-labelledby="c5">
+    <div class="chapter-head">
+      <span class="eyebrow">EXPLORE · 탐험</span>
+      <h2 id="c5">폭포 산, 숲길, 바다</h2>
+      <p>찌그러진 오각형 폭포 산은 3단 폭포가 흘러내리고, 절벽은 스태미나를 써서 타고 올라요. 맵 끝은 모래사장과 바다예요.</p>
+    </div>
+    <div class="grid">
+      <figure class="big"><button type="button"><img src="img/12_waterfall.jpg" alt="3단 폭포와 웅덩이" loading="lazy"></button><figcaption><b>3단 폭포</b>폭포 줄기 속은 물이 내리눌러 오르기 힘들어요.</figcaption></figure>
+      <figure><button type="button"><img src="img/16_climb.jpg" alt="절벽을 타는 로봇" loading="lazy"></button><figcaption><b>벽 타기</b>스태미나가 바닥나면 떨어져요. 중간 턱에서 쉬어 가요.</figcaption></figure>
+      <figure><button type="button"><img src="img/11_forest_path.jpg" alt="숲길을 걷는 로봇" loading="lazy"></button><figcaption><b>숲길</b>숲마다 오솔길이 하나씩.</figcaption></figure>
+      <figure><button type="button"><img src="img/15_beach.jpg" alt="모래사장과 바다" loading="lazy"></button><figcaption><b>바다</b>허리까지만 들어갈 수 있어요.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="chapter" aria-labelledby="c6">
+    <div class="chapter-head">
+      <span class="eyebrow">DAY 90 · 비밀 동굴</span>
+      <h2 id="c6">큰 나무 밑의 마지막 씨앗</h2>
+      <p>90일차가 되면 지킴이가 길을 비켜 줘요. 천장이 뚫린 동굴 안, 빛나는 큰 나무 밑에 별빛 꽃 씨앗이 하나 있어요.</p>
+    </div>
+    <div class="grid">
+      <figure><button type="button"><img src="img/18_cave_entrance.jpg" alt="이끼 덮인 돌무지 동굴 입구" loading="lazy"></button><figcaption><b>입구</b>이끼 덮인 돌무지와 나무 문틀.</figcaption></figure>
+      <figure><button type="button"><img src="img/19_cave_inside.jpg" alt="동굴 안 폭포와 웅덩이" loading="lazy"></button><figcaption><b>동굴 안</b>천장 구멍으로 떨어지는 폭포.</figcaption></figure>
+      <figure><button type="button"><img src="img/20_cave_tree.jpg" alt="빛나는 큰 나무" loading="lazy"></button><figcaption><b>큰 나무</b>노란 결이 빛나는 줄기, 반딧불이.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="chapter" aria-labelledby="c7">
+    <div class="chapter-head">
+      <span class="eyebrow">CAST · 캐릭터와 식물</span>
+      <h2 id="c7">M-01과 꽃 모양 원주민</h2>
+      <p>로봇과 원주민은 3D 모델, 꽃 10종과 전설의 별빛 꽃은 코드로 빚은 로우폴리 모델이에요.</p>
+    </div>
+    <div class="grid two">
+      <figure><button type="button"><img src="img/21_characters.jpg" alt="로봇 세 방향과 원주민 셋" loading="lazy"></button><figcaption><b>캐릭터</b>M-01(앞·옆·뒤) · 원주민 어른과 아이.</figcaption></figure>
+      <figure><button type="button"><img src="img/22_plants.jpg" alt="꽃 10종과 별빛 꽃" loading="lazy"></button><figcaption><b>꽃 11종</b>민들레부터 수련, 그리고 별빛 꽃.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="chapter" aria-labelledby="c8">
+    <div class="chapter-head">
+      <span class="eyebrow">ENDING · 귀환</span>
+      <h2 id="c8">연료통을 넣고, 지구로</h2>
+      <p>별빛 꽃을 피워 지구로 보내면 귀환 연료통이 와요. 기지에 넣고 들어가면 이야기가 끝나요. 신뢰가 50을 넘으면 메신저, 아니면 정복 결말이에요.</p>
+    </div>
+    <div class="flow" aria-label="결말까지의 흐름">
+      <span>동굴에서 씨앗</span><i>→</i><span>비닐하우스에서 피우기</span><i>→</i><span>지구로 보내기</span><i>→</i><span>귀환 연료통</span><i>→</i><span>기지에 넣고 들어가기</span><i>→</i><span>결말</span>
+    </div>
+    <div class="grid two">
+      <figure><button type="button"><img src="img/24_launch.jpg" alt="눈이 감기며 떠나는 장면" loading="lazy"></button><figcaption><b>떠나는 날</b>"기지에 불이 켜지고, 땅이 흔들려요…"</figcaption></figure>
+      <figure><button type="button"><img src="img/25_ending.jpg" alt="메신저 결말 성적표" loading="lazy"></button><figcaption><b>메신저 결말</b>"100일째, 지구의 배는 손님으로 찾아왔어요."</figcaption></figure>
+    </div>
+  </section>
+
+  <footer>모든 장면은 개발 중인 게임 안에서 직접 찍은 화면이에요(성적표 점수는 테스트로 날짜만 넘겨서 0점).</footer>
+</div>
+
+<dialog id="viewer" aria-label="큰 화면으로 보기">
+  <form method="dialog"><button type="submit" aria-label="닫기">닫기 ✕</button></form>
+  <img id="viewerImg" alt="">
+  <p id="viewerCap"></p>
+</dialog>
+
+<script>
+(function () {
+  var dlg = document.getElementById('viewer');
+  var img = document.getElementById('viewerImg');
+  var cap = document.getElementById('viewerCap');
+  document.querySelectorAll('figure button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var src = btn.querySelector('img');
+      img.src = src.src; img.alt = src.alt;
+      var fc = btn.parentElement.querySelector('figcaption');
+      cap.textContent = fc ? fc.textContent : '';
+      if (dlg.showModal) dlg.showModal();
+    });
+  });
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+})();
+</script>

@@ -77,27 +77,9 @@ public static class PrototypeBootstrap
         var dome = new GameObject("Habitat").transform;
         dome.SetParent(root, false);
         dome.position = new Vector3(-10f, 0, -5f);
-        var model = ArtLibrary.SpawnModel("base_colony", dome);
-        var domeArt = ArtLibrary.World("Props/base");
-        if (model)
-        {
-            // 모델 입구가 +Z 라서 90도 돌려 충전기·비닐하우스 쪽(+X)을 보게 한다
-            dome.rotation = Quaternion.Euler(0, 90, 0);
-            AddBodyCollider(dome, model);
-        }
-        else if (domeArt)
-        {
-            dome.gameObject.AddComponent<SphereCollider>().radius = 3.2f;
-            Billboard.CreateByHeight(dome, domeArt, 5.5f, Color.white);
-        }
-        else
-        {
-            dome.gameObject.AddComponent<SphereCollider>().radius = 3.2f;
-            Part(dome, PrimitiveType.Sphere, Vector3.zero, new Vector3(6.4f, 6f, 6.4f), new Color(0.95f, 0.96f, 0.97f));
-            Part(dome, PrimitiveType.Cube, new Vector3(3.1f, 1.1f, 0), new Vector3(0.3f, 2.2f, 1.6f), new Color(0.45f, 0.85f, 0.85f)).name = "Door";
-            for (int i = 0; i < 3; i++)
-                Part(dome, PrimitiveType.Sphere, new Vector3(2.2f, 2.2f, -1.6f + i * 1.6f), Vector3.one * 0.6f, new Color(0.3f, 0.6f, 0.7f));
-        }
+        // 기지 건물: 코드로 빚은 3D(BaseModel, 돔·탑·위성 안테나). 문이 로컬 +Z 라서 90도 돌려 충전기·비닐하우스 쪽(+X)을 보게 한다
+        BaseModel.Build(dome);
+        dome.rotation = Quaternion.Euler(0, 90, 0);
 
         var pad = new GameObject("ChargingPad").transform;
         pad.SetParent(root, false);
